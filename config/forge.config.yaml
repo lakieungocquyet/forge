@@ -1,0 +1,27 @@
+compute:
+  threads: 4
+  min_memory_gb: 8
+  max_memory_gb: 16
+
+resources:
+  hg19:
+    reference_genome: resources/hg19/reference_genome_hg19/hg19.p13.plusMT.no_alt_analysis_set.fa
+    variant_resources: 
+      1000g_omni2_5: resources/hg19/variant_resources_hg19/1000g_omni2_5_hg19/1000G_omni2.5.hg19.sites.vcf.bgz
+      dbnsfp4_9a: resources/hg19/variant_resources_hg19/dbnsfp4_9a_hg19/dbnsfp4.9a_hg19.txt.bgz
+      dbsnp_138: resources/hg19/variant_resources_hg19/dbsnp_138_hg19/dbsnp_138.hg19.vcf.bgz
+      1000g_phase1_indels: resources/hg19/variant_resources_hg19/1000g_phase1_indels_hg19/1000G_phase1.indels.hg19.sites.vcf.bgz
+      1000g_phase3_v4_20130502: resources/hg19/variant_resources_hg19/1000g_phase3_v4_20130502_sites_hg19/1000G_phase3_v4_20130502.sites.hg19.vcf.bgz
+      clinvar_20240716: resources/hg19/variant_resources_hg19/clinvar_20240716_hg19/clinvar_20240716.hg19.vcf.bgz
+      esp6500si_v2_ssa137: resources/hg19/variant_resources_hg19/esp6500si_v2_ssa137_hg19/esp6500si_v2_ssa137.hg19.vcf.bgz
+    regions:
+      s07604624: resources/hg19/regions_hg19/s07604624_hg19/s07604624_regions.bed
+    hg38:
+      reference_genome: None
+      variant_resources: 
+        1000g_omni2_5: 
+        dbnsfp4_9a: None
+        dbsnp_138: None
+        1000g_phase3_v4_20130502: None
+        clinvar_20240716: None
+        esp6500si_v2_ssa137: None
