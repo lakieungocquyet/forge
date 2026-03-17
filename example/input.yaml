@@ -1,0 +1,20 @@
+# Please don't use tab characters for indentation in this file. Use spaces only.
+input:
+  sample: [
+    { 
+      id: NF2_01, 
+      platform: "illumina", 
+      read1: /home/lknq/WES_samples/NF2_01/NF2_01_1.trim.fastq.gz,
+      read2: /home/lknq/WES_samples/NF2_01/NF2_01_2.trim.fastq.gz
+    },
+    # You can add more samples as needed
+    # { 
+    #   id: sample1, 
+    #   platform: "...", # platform: (illumina/nanopore/pacbio)
+    #   read1: /home/lknq/WES_samples/NF2_01/NF2_01_1.trim.fastq.gz,
+    #   read2: /home/lknq/WES_samples/NF2_01/NF2_01_2.trim.fastq.gz
+    # },
+  ]
+output: 
+  directory: /home/lknq/GitHub/forge/results
+
