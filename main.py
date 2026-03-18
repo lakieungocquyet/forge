@@ -23,6 +23,7 @@ logger = logging.getLogger("logger")
 parser = argparse.ArgumentParser(
     prog="forge",
     description="Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data",
+    formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=35, width=100)
     )
 parser.add_argument(
     "-I", "--input",
