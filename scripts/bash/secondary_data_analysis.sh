@@ -28,13 +28,15 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
 
 GVCF_FILE_STRING=""
 
-echo "$INPUT_SAMPLE_LIST" | jq -c '.[]' | while read -r sample; do
+while read -r sample; do
     sample_id=$(echo "$sample" | jq -r ".id")
     sample_platform=$(echo "$sample" | jq -r ".platform")
     sample_read1=$(echo "$sample" | jq -r ".read1")
     sample_read2=$(echo "$sample" | jq -r ".read2")
 
     mkdir -p ${OUTPUT_DIR_PATH}/${sample_id}
+    
+    GVCF_FILE_STRING+=" -V ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.g.vcf"
 
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         bwa mem -t ${THREADS} \
@@ -128,8 +130,8 @@ echo "$INPUT_SAMPLE_LIST" | jq -c '.[]' | while read -r sample; do
             --verbosity INFO \
     2>> "${MONITORING_LOG_FILE_PATH}" 
     GVCF_FILE_STRING+=" -V ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.g.vcf"
-done
-
+done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
+echo " test: $GVCF_FILE_STRING"
 /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
     gatk CombineGVCFs \
         -R ${REFERENCE_GENOME_FILE_PATH} \
