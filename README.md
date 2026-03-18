@@ -109,7 +109,6 @@ usage: forge [-h] -I <file>
 Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data
 
 options:
-  -h, --help            show this help message and exit
-  -I <file>, --input <file>
-                        path to the YAML configuration file (e.g., run.yaml)
+  -h, --help                 show this help message and exit
+  -I <file>, --input <file>  path to the YAML configuration file (e.g., run.yaml)
 ```
