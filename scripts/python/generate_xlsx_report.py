@@ -50,35 +50,6 @@ OTHERS =    ["Gene_old_names","Gene_full_name","Pathway(Uniprot)","Pathway(BioCa
                 "Gene_damage_prediction(cancer_dominant_disease-causing_genes)"
             ]
 
-
-def setup_logging(logger, monitoring_log_file_path):
-    logger = logging.getLogger(f"{logger}")
-    logger.setLevel(logging.INFO)
-    
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(message)s",
-        "%Y-%m-%d %H:%M:%S"
-    )
-    # FILE 
-    file_handler = logging.FileHandler(f"{monitoring_log_file_path}", mode="a", encoding="utf-8")
-    file_handler.setFormatter(formatter)
-
-    # STREAM
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(formatter)
-
-    logger.addHandler(file_handler)
-    logger.addHandler(stream_handler)
-    return logger
-
-setup_logging(
-    logger = "logger",
-    monitoring_log_file_path = f"{pathlib.Path(__file__).parent.parent.parent}/log/monitoring.log"
-)
-
 logger = logging.getLogger("logger")
 
 parser = argparse.ArgumentParser(
