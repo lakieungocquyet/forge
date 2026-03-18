@@ -1,5 +1,7 @@
 SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
 
+source "$SCRIPT_DIR_PATH/../../src/utils/setup_logging.sh"
+
 INPUT_SAMPLE_LIST=$(echo "$1" | jq -r ".input_data.input.sample")
 OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".input_data.output.directory")
 
@@ -29,6 +31,7 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
 GVCF_FILE_STRING=""
 
 while read -r sample; do
+    
     sample_id=$(echo "$sample" | jq -r ".id")
     sample_platform=$(echo "$sample" | jq -r ".platform")
     sample_read1=$(echo "$sample" | jq -r ".read1")
@@ -37,6 +40,9 @@ while read -r sample; do
     mkdir -p ${OUTPUT_DIR_PATH}/${sample_id}
     
     GVCF_FILE_STRING+=" -V ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.g.vcf"
+
+    logger INFO "process sample $sample_id"
+    logger INFO "map and align $sample_id reads to reference genome"
 
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         bwa mem -t ${THREADS} \
@@ -47,16 +53,19 @@ while read -r sample; do
         > ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sam \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
+    logger INFO "convert $sample_id SAM file to BAM file"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         samtools view -@ ${THREADS} -Sb ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sam \
             > ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.bam \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
+    logger INFO "sort $sample_id BAM file"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         samtools sort -@ ${THREADS} -o ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam \
             ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.bam \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
+    logger INFO "mark duplicates $sample_id BAM file"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         gatk MarkDuplicates \
             -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam \
@@ -64,6 +73,7 @@ while read -r sample; do
             -M ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.output.metrics.txt \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
+    logger INFO "recalibrate base quality $sample_id BAM file"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         gatk BaseRecalibrator \
             -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
@@ -74,6 +84,7 @@ while read -r sample; do
             -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.recal_data.table \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
+    logger INFO "apply BQSR $sample_id BAM file"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         gatk ApplyBQSR \
             -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
@@ -82,6 +93,7 @@ while read -r sample; do
             -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
+    logger INFO "call variants (GVCF) $sample_id"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         gatk HaplotypeCaller \
             -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam \
@@ -131,7 +143,8 @@ while read -r sample; do
     2>> "${MONITORING_LOG_FILE_PATH}" 
     GVCF_FILE_STRING+=" -V ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.g.vcf"
 done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
-echo " test: $GVCF_FILE_STRING"
+
+logger INFO "combine gvcf files" 
 /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
     gatk CombineGVCFs \
         -R ${REFERENCE_GENOME_FILE_PATH} \
@@ -139,6 +152,7 @@ echo " test: $GVCF_FILE_STRING"
         -O ${OUTPUT_DIR_PATH}/cohort.g.vcf \
 2>> "${MONITORING_LOG_FILE_PATH}"
 
+logger INFO "genotype gvcf"
 /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
     gatk GenotypeGVCFs \
         -R ${REFERENCE_GENOME_FILE_PATH} \
@@ -165,6 +179,7 @@ echo " test: $GVCF_FILE_STRING"
         --verbosity INFO \
 2>> "${MONITORING_LOG_FILE_PATH}"
 
+logger INFO "filter variants"
 /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
     gatk VariantFiltration \
         -R ${REFERENCE_GENOME_FILE_PATH} \
@@ -176,6 +191,7 @@ echo " test: $GVCF_FILE_STRING"
         -O ${OUTPUT_DIR_PATH}/cohort.filtered.vcf \
 2>> "${MONITORING_LOG_FILE_PATH}"
 
+logger INFO "normalize vcf file"
 /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
     bcftools norm -Ov -m-any \
         --multi-overlaps . \
