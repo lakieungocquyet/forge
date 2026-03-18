@@ -80,3 +80,20 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
         > ${OUTPUT_DIR_PATH}/annotation_temp_7.vcf \
 2>> ${MONITORING_LOG_FILE_PATH}
 
+while read -r sample; do
+    sample_id=$(echo "$sample" | jq -r ".id")
+
+    /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
+        gatk SelectVariants \
+            -V ${OUTPUT_DIR_PATH}/annotation_temp_7.vcf \
+            -R ${REFERENCE_GENOME_FILE_PATH} \
+            --sample-name ${sample_id} \
+            --exclude-non-variants \
+            -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf \
+    2>> ${MONITORING_LOG_FILE_PATH}
+
+    python3 "${SCRIPT_DIR_PATH}/../python/generate_xlsx_report.py" \
+        -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf \
+        -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.xlsx
+        
+done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
