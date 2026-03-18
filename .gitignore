@@ -1,4 +1,4 @@
-# pixi environments
+pixi.toml
 .pixi/*
 !.pixi/config.toml
 resources/*
