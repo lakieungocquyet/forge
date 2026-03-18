@@ -1,5 +1,7 @@
 SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
 
+source "$SCRIPT_DIR_PATH/../../src/utils/setup_logging.sh"
+
 INPUT_SAMPLE_LIST=$(echo "$1" | jq -r ".input_data.input.sample")
 OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".input_data.output.directory")
 
@@ -26,19 +28,21 @@ THREADS=$(echo "$1" | jq -r ".config_data.compute.threads")
 MIN_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.min_memory_gb")
 MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
 
-
+logger INFO "annotate variants with snpEff"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
     java -Xmx${MAX_MEMORY_GB}g -jar ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpeff-5.4.0c-0/snpEff.jar -v GRCh37.p13 \
         ${OUTPUT_DIR_PATH}/cohort.filtered.norm.vcf \
         > ${OUTPUT_DIR_PATH}/annotation_temp_1.vcf \
 2>> ${MONITORING_LOG_FILE_PATH}
 
+logger INFO "annotate variant type"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
     java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar varType  \
         ${OUTPUT_DIR_PATH}/annotation_temp_1.vcf \
         > ${OUTPUT_DIR_PATH}/annotation_temp_2.vcf \
 2>> ${MONITORING_LOG_FILE_PATH}
 
+logger INFO "annotate clinvar"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
     java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar annotate \
         -noId -name CLINVAR_ \
@@ -47,6 +51,7 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
         > ${OUTPUT_DIR_PATH}/annotation_temp_3.vcf \
 2>> ${MONITORING_LOG_FILE_PATH}
 
+logger INFO "annotate 1000g phase3"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
     java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar annotate \
         -noId -name p3_1000G_ \
@@ -55,6 +60,7 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
         > ${OUTPUT_DIR_PATH}/annotation_temp_4.vcf \
 2>> ${MONITORING_LOG_FILE_PATH}
 
+logger INFO "annotate esp6500"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
     java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar annotate \
         -noId -name ESP6500_ \
@@ -63,6 +69,7 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
         > ${OUTPUT_DIR_PATH}/annotation_temp_5.vcf \
 2>> ${MONITORING_LOG_FILE_PATH}
 
+logger INFO "annotate dbsnp"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
     java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar annotate \
         -noId -info dbSNP138_ID,dbSNPBuildID \
@@ -72,6 +79,7 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
         > ${OUTPUT_DIR_PATH}/annotation_temp_6.vcf \
 2>> ${MONITORING_LOG_FILE_PATH}
 
+logger INFO "annotate dbnsfp"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
     java -Xmx${MAX_MEMORY_GB}g -jar  \
         ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar dbnsfp -v -f "" -n \
@@ -83,6 +91,7 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
 while read -r sample; do
     sample_id=$(echo "$sample" | jq -r ".id")
 
+    logger INFO "extract variants for $sample_id"
     /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
         gatk SelectVariants \
             -V ${OUTPUT_DIR_PATH}/annotation_temp_7.vcf \
@@ -92,6 +101,7 @@ while read -r sample; do
             -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf \
     2>> ${MONITORING_LOG_FILE_PATH}
 
+    logger INFO "generate xlsx report $sample_id"
     python3 "${SCRIPT_DIR_PATH}/../python/generate_xlsx_report.py" \
         -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf \
         -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.xlsx
