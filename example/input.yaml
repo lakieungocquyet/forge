@@ -7,6 +7,12 @@ input:
       read1: /home/lknq/WES_samples/NF2_01/NF2_01_1.trim.fastq.gz,
       read2: /home/lknq/WES_samples/NF2_01/NF2_01_2.trim.fastq.gz
     },
+    { 
+      id: RGNC07, 
+      platform: "illumina", 
+      read1: /home/lknq/WES_samples/RGNC07/RGNC07_1.trim.fastq.gz,
+      read2: /home/lknq/WES_samples/RGNC07/RGNC07_2.trim.fastq.gz
+    },
     # You can add more samples as needed
     # { 
     #   id: sample1, 
