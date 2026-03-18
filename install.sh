@@ -3,11 +3,11 @@ pixi workspace channel add -m pixi.toml "bioconda"
 pixi workspace environment add forge
 
 pixi add --no-install \
-    bwa=* samtools=* gatk4=* bcftools=* snpeff=* snpsift=* \
+    bwa=* samtools=* gatk4=* bcftools=* snpeff=* snpsift=* \ 
     jq=* python=* \
     pyyaml=* pandas=* xlsxwriter=* seaborn=* cyvcf2=* 
 
-pixi task add forge "python3 main.py" --cwd ${PIXI_PROJECT_ROOT}/src/ --description "Run Forge"
+pixi task add forge "python3 main.py" --cwd ${PIXI_PROJECT_ROOT}/ --description "Run Forge"
 
 pixi install -e forge
 
