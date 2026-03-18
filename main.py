@@ -21,13 +21,16 @@ setup_logging(
 logger = logging.getLogger("logger")
 
 parser = argparse.ArgumentParser(
-        description = "Run variant calling pipeline"
+    prog="forge",
+    description="Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data",
     )
 parser.add_argument(
     "-I", "--input",
     required = True, 
     type = str, 
-    help = "Path to YAML configuration file"
+    dest="input",
+    metavar="<file>",
+    help="path to the YAML configuration file (e.g., run.yaml)"
 )
 arguments = parser.parse_args()
 
