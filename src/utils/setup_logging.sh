@@ -24,7 +24,7 @@ function logger() {
     esac
     reset="\e[0m"
     # terminal (color)
-    echo -e "[\e[32m$timestamp\e[0m] [${color}$level${reset}] $message"
+    echo -e "[\e[33m$timestamp\e[0m] [${color}$level${reset}] $message"
     # echo -e "[\e[32m$timestamp\e[0m] [${color}$level${reset}] ${color}$message${reset}"
     # file (no color)
     echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
