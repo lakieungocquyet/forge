@@ -34,7 +34,7 @@ git clone https://github.com/lakieungocquyet/forge.git
 ### Step 3: Run installer
 
 ```
-cd forge && bash install.sh
+cd forge && source install.sh
 ```
 
 # How to use
