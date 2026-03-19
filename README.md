@@ -10,7 +10,7 @@ of this repository are 100% open source and released under the GPL-3.0 license (
 
 # Installation
 
-### Step 1: Install [pixi](https://pixi.prefix.dev/latest/)
+### 1. Install [pixi](https://pixi.prefix.dev/latest/)
 
 Pixi is a package and environment management tool. Forge uses Pixi to manage dependencies and tasks.
 
@@ -25,13 +25,13 @@ If your system doesn't have `curl`, you can use `wget`:
 wget -qO- https://pixi.sh/install.sh | sh
 ```
 
-### Step 2: Clone Forge repository from Github
+### 2. Clone Forge repository from Github
 
 ```
 git clone https://github.com/lakieungocquyet/forge.git
 ```
 
-### Step 3: Run installer
+### 3. Run installer
 
 ```
 cd forge && source install.sh
@@ -95,14 +95,6 @@ Fields:
 - `platform`: sequencing platform (e.g., illumina)  
 - `read1`, `read2`: paths to paired-end FASTQ files  
 ### 3. Run the variant calling pipeline
-Use the following command:
-```
-forge callvariants \
-  -I path/to/your/<config_file_name>.yaml \
-  -O path/to/your/output/directory \
-  -R path/to/your/<reference_genome>.fa \
-  -r path/to/your/<regions>.bed
-```
 
 Example:
 
@@ -116,10 +108,6 @@ forge callvariants \
 # All options
 
 ```
-Available commands:
-
-callvariants:
-
 usage: forge callvariants [-h] -I <YAML> -O <directory> -R <FASTA> [-r <BED>] [--bqsr-known-sites <VCF> [<VCF> ...]] [--annotation-resource <TYPE=VCF> [<TYPE=VCF> ...]] [-t <INT>] [--max-memory <GB>] [--min-memory <GB>]
 
 options:
