@@ -9,9 +9,6 @@ import pathlib
 import logging
 from src.utils.setup_logging import setup_logging
 
-
-
-
 def load_yaml_file(yaml_file_path):
     with open(f"{yaml_file_path}", "r") as f:
         return yaml.safe_load(f)
@@ -29,10 +26,15 @@ parser = argparse.ArgumentParser(
     epilog="Use 'forge <command> -h' for more information on a command.",
     formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=70, width=1000),
     )
-
+parser.add_argument(
+    "-l", "--list",
+    action="store_true",
+    help="List all available commands"
+)
 subparsers = parser.add_subparsers(
     dest="command", 
-    required=True,
+    title="Commands",
+    metavar="<command>",
     )
 
 # ---- callvariants ----
@@ -134,6 +136,18 @@ callvariants_parser.add_argument(
 )
 
 # ----------------------
+arguments, unknown = parser.parse_known_args()
+
+if arguments.list:
+    print("Available commands:\n")
+    for name, subparser in subparsers.choices.items():
+        print(f"{name}:\n")
+        print(subparser.format_help())
+    sys.exit(0)
+
+if arguments.command is None:
+    parser.print_help()
+    sys.exit(1)
 arguments = parser.parse_args()
 
 input_yaml_file_path = arguments.input
