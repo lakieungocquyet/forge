@@ -122,7 +122,7 @@ forge callvariants \
     --min-memory 20
 ```
 # All options
-## `Overview`
+## `forge -h`
 ```
 usage: forge [-h] [-l] {callvariants} ...
 
@@ -138,7 +138,7 @@ commands:
 
 Use 'forge <command> -h' for more information on a command.
 ```
-## `callvariants`
+## `forge callvariants -h`
 ```
 usage: forge callvariants [-h] -I <YAML> -O <directory> -R <FASTA> [-r <BED>] [--bqsr-known-sites <VCF> [<VCF> ...]] [--annotation-resource <TYPE=VCF> [<TYPE=VCF> ...]] [-t <INT>] [--max-memory <GB>] [--min-memory <GB>]
 
