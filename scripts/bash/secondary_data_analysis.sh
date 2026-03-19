@@ -2,27 +2,34 @@ SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
 
 source "$SCRIPT_DIR_PATH/../../src/utils/setup_logging.sh"
 
-INPUT_SAMPLE_LIST=$(echo "$1" | jq -r ".input_data.input.sample")
-OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".input_data.output.directory")
+INPUT_SAMPLE_LIST=$(echo "$1" | jq -r ".input_data.sample")
+OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".output_dir_path")
 
 
+mapfile -t BQSR_KNOWN_SITES < <(
+    echo "$1" | jq -r ".config_data.resources.bqsr_known_sites[]?" 2>/dev/null
+)
+BQSR_FLAGS=()
+for site in "${BQSR_KNOWN_SITES[@]}"; do
+    [ -f "$site" ] && BQSR_FLAGS+=(--known-sites "$site")
+done
 
 RUNTIME_LOG_FILE_PATH="${SCRIPT_DIR_PATH}/../../log/runtime.log"
 MONITORING_LOG_FILE_PATH="${SCRIPT_DIR_PATH}/../../log/monitoring.log"
 
 
-REFERENCE_GENOME_FILE_PATH="${SCRIPT_DIR_PATH}/../../$(echo "$1" | jq -r ".config_data.resources.hg19.reference_genome")"
+REFERENCE_GENOME_FILE_PATH="$(echo "$1" | jq -r ".config_data.resources.reference_genome_file_path")"
 
 
-G1000_OMNI2_5_FILE_PATH="${SCRIPT_DIR_PATH}/../../$(echo "$1" | jq -r '.config_data.resources.hg19.variant_resources["1000g_omni2_5"]')"
-DBNSFP4_9A_FILE_PATH="${SCRIPT_DIR_PATH}/../../$(echo "$1" | jq -r '.config_data.resources.hg19.variant_resources.dbnsfp4_9a')"
-DBSNP_138_FILE_PATH="${SCRIPT_DIR_PATH}/../../$(echo "$1" | jq -r '.config_data.resources.hg19.variant_resources.dbsnp_138')"
-G1000_PHASE1_INDELS_FILE_PATH="${SCRIPT_DIR_PATH}/../../$(echo "$1" | jq -r '.config_data.resources.hg19.variant_resources["1000g_phase1_indels"]')"
-G1000_PHASE3_V4_20130502_FILE_PATH="${SCRIPT_DIR_PATH}/../../$(echo "$1" | jq -r '.config_data.resources.hg19.variant_resources["1000g_phase3_v4_20130502"]')"
-CLINVAR_20240716_FILE_PATH="${SCRIPT_DIR_PATH}/../../$(echo "$1" | jq -r '.config_data.resources.hg19.variant_resources.clinvar_20240716')"
-ESP6500SI_V2_SSA137_FILE_PATH="${SCRIPT_DIR_PATH}/../../$(echo "$1" | jq -r '.config_data.resources.hg19.variant_resources.esp6500si_v2_ssa137')"
+OMNI2_5_1000G_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.omni2_5_1000g')"
+DBNSFP_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.dbnsfp')"
+DBSNP_138_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.dbsnp_138')"
+PHASE1_1000G_INDELS_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.phase1_1000g_indels')"
+PHASE3_1000G_V4_20130502_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.phase3_1000g_v4_20130502')"
+CLINVAR_20240716_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.clinvar')"
+ESP6500SI_V2_SSA137_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.esp6500si_v2_ssa137')"
 
-S07604624_REGIONS_FILE_PATH="${SCRIPT_DIR_PATH}/../../$(echo "$1" | jq -r ".config_data.resources.hg19.regions.s07604624")"
+REGIONS_FILE_PATH="$(echo "$1" | jq -r ".config_data.resources.regions_file_path")"
 
 THREADS=$(echo "$1" | jq -r ".config_data.compute.threads")
 MIN_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.min_memory_gb")
@@ -73,25 +80,32 @@ while read -r sample; do
             -M ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.output.metrics.txt \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
-    logger INFO "recalibrate base quality $sample_id BAM file"
-    /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
-        gatk BaseRecalibrator \
-            -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
-            -R ${REFERENCE_GENOME_FILE_PATH} \
-            --known-sites ${G1000_PHASE1_INDELS_FILE_PATH} \
-            --known-sites ${DBSNP_138_FILE_PATH} \
-            --known-sites ${G1000_OMNI2_5_FILE_PATH} \
-            -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.recal_data.table \
-    2>> "${MONITORING_LOG_FILE_PATH}"
+    if [ ${#BQSR_FLAGS[@]} -eq 0 ]; then
+        logger WARN "skip BQSR for $sample_id (no BQSR known sites provided)"
 
-    logger INFO "apply BQSR $sample_id BAM file"
-    /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
-        gatk ApplyBQSR \
-            -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
-            -R ${REFERENCE_GENOME_FILE_PATH} \
-            --bqsr-recal-file ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.recal_data.table \
-            -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam \
-    2>> "${MONITORING_LOG_FILE_PATH}"
+        cp "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam" \
+        "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam"
+
+    else
+        logger INFO "recalibrate base quality $sample_id BAM file"
+        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
+            gatk BaseRecalibrator \
+                -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
+                -R ${REFERENCE_GENOME_FILE_PATH} \
+                "${BQSR_FLAGS[@]}" \
+                -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.recal_data.table \
+        2>> "${MONITORING_LOG_FILE_PATH}"
+
+        logger INFO "apply BQSR $sample_id BAM file"
+        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
+            gatk ApplyBQSR \
+                -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
+                -R ${REFERENCE_GENOME_FILE_PATH} \
+                --bqsr-recal-file ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.recal_data.table \
+                -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam \
+        2>> "${MONITORING_LOG_FILE_PATH}"
+    fi
+
 
     logger INFO "call variants (GVCF) $sample_id"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
@@ -101,7 +115,7 @@ while read -r sample; do
             -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.g.vcf \
             --native-pair-hmm-threads ${THREADS} \
             -ERC GVCF \
-            -L ${S07604624_REGIONS_FILE_PATH} \
+            -L ${REGIONS_FILE_PATH} \
             -ip 100 \
             --use-posteriors-to-calculate-qual false \
             --dont-use-dragstr-priors false \
@@ -157,7 +171,7 @@ logger INFO "genotype gvcf"
         -R ${REFERENCE_GENOME_FILE_PATH} \
         -V ${OUTPUT_DIR_PATH}/cohort.g.vcf \
         -O ${OUTPUT_DIR_PATH}/cohort.vcf \
-        -L ${S07604624_REGIONS_FILE_PATH} \
+        -L ${REGIONS_FILE_PATH} \
         -ip 100 \
         --include-non-variant-sites false \
         --merge-input-intervals false \
