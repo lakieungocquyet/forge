@@ -1,4 +1,0 @@
-default-channels = [
-    "conda-forge",
-    "bioconda",
-]
