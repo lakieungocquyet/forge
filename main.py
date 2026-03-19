@@ -22,9 +22,9 @@ logger = logging.getLogger("logger")
 
 parser = argparse.ArgumentParser(
     prog="forge",
-    description="Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data",
+    description="forge: Variant calling pipeline for Whole Exome Sequencing (WES) data",
     epilog="Use 'forge <command> -h' for more information on a command.",
-    formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=70, width=1000),
+    formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=70, width=100),
     )
 parser.add_argument(
     "-l", "--list",
@@ -33,8 +33,7 @@ parser.add_argument(
 )
 subparsers = parser.add_subparsers(
     dest="command", 
-    title="Commands",
-    metavar="<command>",
+    title="commands",
     )
 
 # ---- callvariants ----
@@ -136,18 +135,7 @@ callvariants_parser.add_argument(
 )
 
 # ----------------------
-arguments, unknown = parser.parse_known_args()
 
-if arguments.list:
-    print("Available commands:\n")
-    for name, subparser in subparsers.choices.items():
-        print(f"{name}:\n")
-        print(subparser.format_help())
-    sys.exit(0)
-
-if arguments.command is None:
-    parser.print_help()
-    sys.exit(1)
 arguments = parser.parse_args()
 
 input_yaml_file_path = arguments.input
