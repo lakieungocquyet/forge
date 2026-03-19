@@ -122,7 +122,23 @@ forge callvariants \
     --min-memory 20
 ```
 # All options
+## `Overview`
+```
+usage: forge [-h] [-l] {callvariants} ...
 
+forge: Variant calling pipeline for Whole Exome Sequencing (WES) data
+
+options:
+  -h, --help      show this help message and exit
+  -l, --list      List all available commands
+
+commands:
+  {callvariants}
+    callvariants  Run variant calling pipeline
+
+Use 'forge <command> -h' for more information on a command.
+```
+## `callvariants`
 ```
 usage: forge callvariants [-h] -I <YAML> -O <directory> -R <FASTA> [-r <BED>] [--bqsr-known-sites <VCF> [<VCF> ...]] [--annotation-resource <TYPE=VCF> [<TYPE=VCF> ...]] [-t <INT>] [--max-memory <GB>] [--min-memory <GB>]
 
