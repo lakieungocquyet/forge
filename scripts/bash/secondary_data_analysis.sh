@@ -141,7 +141,6 @@ while read -r sample; do
             --read-validation-stringency SILENT \
             --verbosity INFO \
     2>> "${MONITORING_LOG_FILE_PATH}" 
-    GVCF_FILE_STRING+=" -V ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.g.vcf"
 done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
 logger INFO "combine gvcf files" 
