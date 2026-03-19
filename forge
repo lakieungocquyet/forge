@@ -1,8 +1,5 @@
-#!/usr/bin/env python3
-import sys
-sys.dont_write_bytecode = True
+#! /bin/bash
 
-from main import main
+SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
 
-if __name__ == "__main__":
-    main()
+python3 $SCRIPT_DIR_PATH/main.py "$@"
