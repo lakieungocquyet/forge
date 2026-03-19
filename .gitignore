@@ -1,12 +1,8 @@
+pixi.lock
 pixi.toml
 .pixi/*
 # !.pixi/config.toml
 resources/*
 results/*
 log/*
-# pixi environments
-.pixi/*
-# !.pixi/config.toml
-# pixi environments
-.pixi/*
-!.pixi/config.toml
+
