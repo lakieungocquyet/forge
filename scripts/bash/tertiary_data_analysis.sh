@@ -1,6 +1,6 @@
 SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
 
-source "$SCRIPT_DIR_PATH/../../src/utils/setup_logging.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/setup_logging.sh"
 
 cyan_color="\e[36m"  # cyan
 green_color="\e[32m"   # green
