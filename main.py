@@ -7,12 +7,8 @@ import yaml
 import json
 import pathlib
 import logging
-from src.utils.setup_logging import setup_logging
-
-def load_yaml_file(yaml_file_path):
-    with open(f"{yaml_file_path}", "r") as f:
-        return yaml.safe_load(f)
-
+from src.python.utils.setup_logging import setup_logging
+from src.python.utils.load_yaml_file import load_yaml_file
 
 setup_logging(
     logger_name = "logger",
@@ -23,18 +19,14 @@ logger = logging.getLogger("logger")
 
 parser = argparse.ArgumentParser(
     prog="forge",
-    description="forge: Variant calling pipeline for Whole Exome Sequencing (WES) data",
+    description="Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data",
     epilog="Use 'forge <command> -h' for more information on a command.",
     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=70, width=100),
     )
-parser.add_argument(
-    "-l", "--list",
-    action="store_true",
-    help="List all available commands"
-)
+
 subparsers = parser.add_subparsers(
     dest="command", 
-    title="commands",
+    title="subcommands",
     )
 
 # ---- callvariants ----
@@ -120,14 +112,6 @@ callvariants_parser.add_argument(
 )
 
 callvariants_parser.add_argument(
-    "--max-memory",
-    type=int,
-    default=16,
-    metavar="<GB>",
-    help="Maximum memory in GB (default: 16)"
-)
-
-callvariants_parser.add_argument(
     "--min-memory",
     type=int,
     default=8,
@@ -135,6 +119,13 @@ callvariants_parser.add_argument(
     help="Minimum memory in GB (default: 8)"
 )
 
+callvariants_parser.add_argument(
+    "--max-memory",
+    type=int,
+    default=16,
+    metavar="<GB>",
+    help="Maximum memory in GB (default: 16)"
+)
 # ----------------------
 
 arguments = parser.parse_args()
