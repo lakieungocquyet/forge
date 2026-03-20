@@ -124,15 +124,14 @@ forge callvariants \
 # All options
 ## `forge -h`
 ```
-usage: forge [-h] [-l] {callvariants} ...
+usage: forge [-h] {callvariants} ...
 
-forge: Variant calling pipeline for Whole Exome Sequencing (WES) data
+Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data
 
 options:
   -h, --help      show this help message and exit
-  -l, --list      List all available commands
 
-commands:
+subcommands:
   {callvariants}
     callvariants  Run variant calling pipeline
 
