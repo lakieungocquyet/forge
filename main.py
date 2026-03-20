@@ -154,7 +154,9 @@ annotation_resource_dict = {}
 
 for group in arguments.annotation_resource or []:
     for key, value in group:
-        annotation_resource_dict.setdefault(key, []).append(value)
+        if key in annotation_resource_dict:
+            parser.error(f"Duplicate annotation resource for '{key}'")
+        annotation_resource_dict[key] = value
 
 threads = arguments.threads
 min_memory_gb = arguments.min_memory
@@ -162,9 +164,6 @@ max_memory_gb = arguments.max_memory
 
 if min_memory_gb > max_memory_gb:
     parser.error("--min-memory cannot be greater than --max-memory")
-
-for key in annotation_resource_dict:
-    annotation_resource_dict[key] = list(set(annotation_resource_dict[key]))
 
 input_data = load_yaml_file(input_yaml_file_path)
 
