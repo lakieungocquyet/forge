@@ -21,8 +21,9 @@ for site in "${BQSR_KNOWN_SITES[@]}"; do
     [ -f "$site" ] && BQSR_FLAGS+=(--known-sites "$site")
 done
 
-RUNTIME_LOG_FILE_PATH="${SCRIPT_DIR_PATH}/../../log/runtime.log"
-MONITORING_LOG_FILE_PATH="${SCRIPT_DIR_PATH}/../../log/monitoring.log"
+mkdir -p $OUTPUT_DIR_PATH/log
+RUNTIME_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/runtime.log"
+MONITORING_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/monitoring.log"
 
 
 REFERENCE_GENOME_FILE_PATH="$(echo "$1" | jq -r ".config_data.resources.reference_genome_file_path")"
