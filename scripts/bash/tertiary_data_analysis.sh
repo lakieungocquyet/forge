@@ -38,7 +38,7 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
 sample_ids=$(echo "$INPUT_SAMPLE_LIST" | jq -r '.[].id' | paste -sd ", " -)
 logger INFO "Annotate variants with genomic information for samples: ${green_color}${sample_ids}${reset}"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
-    java -Xmx${MAX_MEMORY_GB}g -jar ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpeff-5.4.0c-0/snpEff.jar -v GRCh37.p13 \
+    java -Xmx${MAX_MEMORY_GB}g -jar ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpeff-5.4.0c-0/snpEff.jar -noStats -v GRCh37.p13 \
         ${OUTPUT_DIR_PATH}/cohort.filtered.norm.vcf \
         > ${OUTPUT_DIR_PATH}/annotation_temp_1.vcf \
 2>> ${MONITORING_LOG_FILE_PATH}
