@@ -119,7 +119,7 @@ forge callvariants \
         phase3_1000g_v4_20130502=~/GitHub/forge/resources/hg19/variant_resources_hg19/1000g_phase3_v4_20130502_sites_hg19/1000G_phase3_v4_20130502.sites.hg19.vcf.bgz \
     -t 8 \
     --min-memory 8 \
-    --min-memory 20
+    --max-memory 20
 ```
 # All options
 ## `forge -h`
