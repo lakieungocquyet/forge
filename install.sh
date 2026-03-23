@@ -4,9 +4,9 @@ pixi workspace channel add -m pixi.toml "bioconda"
 pixi workspace environment add forge
 
 pixi add --no-install \
-    bwa=* samtools=* gatk4=* bcftools=* snpeff=* snpsift=* \
+    bwa=* samtools=* gatk4=* bcftools=* snpeff=* snpsift=* t1k=* \
     jq=* python=* \
-    pyyaml=* pandas=* xlsxwriter=* seaborn=* cyvcf2=* gdown=*
+    pyyaml=* pandas=* xlsxwriter=* seaborn=* cyvcf2=*
 
 # pixi task add forge "python3 main.py" --description "Run Forge"
 
@@ -21,8 +21,10 @@ pixi shell-hook --shell bash -e forge >> ~/.bashrc
 echo "# <<< forge shell hook <<<" >> ~/.bashrc
 
 echo "export PATH=\"$SCRIPT_DIR_PATH:\$PATH\"" >> ~/.bashrc
+chmod +x $SCRIPT_DIR_PATH/forge
+
 echo "# <<< added by forge installer <<<" >> ~/.bashrc
 
-chmod +x $SCRIPT_DIR_PATH/forge
+
 source ~/.bashrc
 
