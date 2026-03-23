@@ -67,9 +67,9 @@ while read -r sample; do
     
     GVCF_FILE_STRING+=" -V ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.g.vcf"
 
-    logger INFO "Process sample ${green_color}$sample_id${reset}"
+    logger INFO $MONITORING_LOG_FILE_PATH "Process sample ${green_color}$sample_id${reset}"
 
-    logger INFO "Map and align ${green_color}$sample_id${reset} reads to reference genome"
+    logger INFO $MONITORING_LOG_FILE_PATH "Map and align ${green_color}$sample_id${reset} reads to reference genome"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         bwa mem -t ${THREADS} \
             -R "@RG\tID:${sample_id}\tLB:lib1\tPL:${sample_platform}\tPU:unit1\tSM:${sample_id}" \
@@ -79,19 +79,19 @@ while read -r sample; do
         > ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sam \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
-    logger INFO "Convert ${green_color}$sample_id${reset} mapping and alignment result from SAM format to BAM format"
+    logger INFO $MONITORING_LOG_FILE_PATH "Convert ${green_color}$sample_id${reset} mapping and alignment result from SAM format to BAM format"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         samtools view -@ ${THREADS} -Sb ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sam \
             > ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.bam \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
-    logger INFO "Sort all records in ${green_color}$sample_id${reset} BAM file by genomic coordinates"
+    logger INFO $MONITORING_LOG_FILE_PATH "Sort all records in ${green_color}$sample_id${reset} BAM file by genomic coordinates"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         samtools sort -@ ${THREADS} -o ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam \
             ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.bam \
     2>> "${MONITORING_LOG_FILE_PATH}"
 
-    logger INFO "Mark duplicate reads in ${green_color}$sample_id${reset} BAM file"
+    logger INFO $MONITORING_LOG_FILE_PATH "Mark duplicate reads in ${green_color}$sample_id${reset} BAM file"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         gatk MarkDuplicates \
             -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam \
@@ -100,12 +100,12 @@ while read -r sample; do
     2>> "${MONITORING_LOG_FILE_PATH}"
 
     if [ ${#BQSR_FLAGS[@]} -eq 0 ]; then
-        logger WARNING "Skip recalibrate base quality for ${green_color}$sample_id${reset} (no BQSR known sites provided)"
+        logger WARNING $MONITORING_LOG_FILE_PATH "Skip recalibrate base quality for ${green_color}$sample_id${reset} (no BQSR known sites provided)"
         cp "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam" \
         "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam"
 
     else
-        logger INFO "Recalibrate base quality for ${green_color}$sample_id${reset}"
+        logger INFO $MONITORING_LOG_FILE_PATH "Recalibrate base quality for ${green_color}$sample_id${reset}"
         /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
             gatk BaseRecalibrator \
                 -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
@@ -114,7 +114,7 @@ while read -r sample; do
                 -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.recal_data.table \
         2>> "${MONITORING_LOG_FILE_PATH}"
 
-        logger INFO "Apply BQSR to ${green_color}$sample_id${reset}"
+        logger INFO $MONITORING_LOG_FILE_PATH "Apply BQSR to ${green_color}$sample_id${reset}"
         /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
             gatk ApplyBQSR \
                 -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
@@ -125,7 +125,7 @@ while read -r sample; do
     fi
 
 
-    logger INFO "Call variants (GVCF) for ${green_color}$sample_id${reset}"
+    logger INFO $MONITORING_LOG_FILE_PATH "Call variants (GVCF) for ${green_color}$sample_id${reset}"
     /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
         gatk HaplotypeCaller \
             -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam \
@@ -177,7 +177,7 @@ done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
 sample_ids=$(echo "$INPUT_SAMPLE_LIST" | jq -r '.[].id' | paste -sd ", " -)
 
-logger INFO "Combining GVCF files for samples: ${green_color}${sample_ids}${reset}"
+logger INFO $MONITORING_LOG_FILE_PATH "Combining GVCF files for samples: ${green_color}${sample_ids}${reset}"
 /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
     gatk CombineGVCFs \
         -R ${REFERENCE_GENOME_FILE_PATH} \
@@ -185,7 +185,7 @@ logger INFO "Combining GVCF files for samples: ${green_color}${sample_ids}${rese
         -O ${OUTPUT_DIR_PATH}/cohort.g.vcf \
 2>> "${MONITORING_LOG_FILE_PATH}"
 
-logger INFO "Genotyping combined GVCF for samples: ${green_color}${sample_ids}${reset}"
+logger INFO $MONITORING_LOG_FILE_PATH "Genotyping combined GVCF for samples: ${green_color}${sample_ids}${reset}"
 /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
     gatk GenotypeGVCFs \
         -R ${REFERENCE_GENOME_FILE_PATH} \
@@ -212,7 +212,7 @@ logger INFO "Genotyping combined GVCF for samples: ${green_color}${sample_ids}${
         --verbosity INFO \
 2>> "${MONITORING_LOG_FILE_PATH}"
 
-logger INFO "Filtering variants for samples: ${green_color}${sample_ids}${reset}"
+logger INFO $MONITORING_LOG_FILE_PATH "Filtering variants for samples: ${green_color}${sample_ids}${reset}"
 /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
     gatk VariantFiltration \
         -R ${REFERENCE_GENOME_FILE_PATH} \
@@ -224,7 +224,7 @@ logger INFO "Filtering variants for samples: ${green_color}${sample_ids}${reset}
         -O ${OUTPUT_DIR_PATH}/cohort.filtered.vcf \
 2>> "${MONITORING_LOG_FILE_PATH}"
 
-logger INFO "Normalizing combined VCF for samples: ${green_color}${sample_ids}${reset}"
+logger INFO $MONITORING_LOG_FILE_PATH "Normalizing combined VCF for samples: ${green_color}${sample_ids}${reset}"
 /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}"\
     bcftools norm -Ov -m-any \
         --multi-overlaps . \

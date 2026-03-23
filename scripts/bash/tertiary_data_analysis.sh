@@ -37,14 +37,14 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
 
 
 sample_ids=$(echo "$INPUT_SAMPLE_LIST" | jq -r '.[].id' | paste -sd ", " -)
-logger INFO "Annotate variants with genomic information for samples: ${green_color}${sample_ids}${reset}"
+logger INFO $MONITORING_LOG_FILE_PATH "Annotate variants with genomic information for samples: ${green_color}${sample_ids}${reset}"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
     java -Xmx${MAX_MEMORY_GB}g -jar ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpeff-5.4.0c-0/snpEff.jar -noStats -v GRCh37.p13 \
         ${OUTPUT_DIR_PATH}/cohort.filtered.norm.vcf \
         > ${OUTPUT_DIR_PATH}/annotation_temp_1.vcf \
 2>> ${MONITORING_LOG_FILE_PATH}
 
-logger INFO "Annotate variants with variant type for samples: ${green_color}${sample_ids}${reset}"
+logger INFO $MONITORING_LOG_FILE_PATH "Annotate variants with variant type for samples: ${green_color}${sample_ids}${reset}"
 /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
     java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar varType  \
         ${OUTPUT_DIR_PATH}/annotation_temp_1.vcf \
@@ -52,7 +52,7 @@ logger INFO "Annotate variants with variant type for samples: ${green_color}${sa
 2>> ${MONITORING_LOG_FILE_PATH}
 
 if [ -f "$CLINVAR_FILE_PATH" ]; then
-    logger INFO "Annotate variants with ClinVar database for samples: ${green_color}${sample_ids}${reset}"
+    logger INFO $MONITORING_LOG_FILE_PATH "Annotate variants with ClinVar database for samples: ${green_color}${sample_ids}${reset}"
     /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
         java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar annotate \
             -noId -name CLINVAR_ \
@@ -61,12 +61,12 @@ if [ -f "$CLINVAR_FILE_PATH" ]; then
             > ${OUTPUT_DIR_PATH}/annotation_temp_3.vcf \
     2>> ${MONITORING_LOG_FILE_PATH}
 else
-    logger WARNING "Skip clinvar annotation (file not found)"
+    logger WARNING $MONITORING_LOG_FILE_PATH "Skip clinvar annotation (file not found)"
     cp "${OUTPUT_DIR_PATH}/annotation_temp_2.vcf" "${OUTPUT_DIR_PATH}/annotation_temp_3.vcf"
 fi
 
 if [ -f "$PHASE3_1000G_V4_20130502_FILE_PATH" ]; then
-    logger INFO "Annotate variants with 1000g phase3 database for samples: ${green_color}${sample_ids}${reset}"
+    logger INFO $MONITORING_LOG_FILE_PATH "Annotate variants with 1000g phase3 database for samples: ${green_color}${sample_ids}${reset}"
     /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
         java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar annotate \
             -noId -name p3_1000G_ \
@@ -75,12 +75,12 @@ if [ -f "$PHASE3_1000G_V4_20130502_FILE_PATH" ]; then
             > ${OUTPUT_DIR_PATH}/annotation_temp_4.vcf \
     2>> ${MONITORING_LOG_FILE_PATH}
 else
-    logger WARNING "Skip 1000g phase3 annotation (file not found)"
+    logger WARNING $MONITORING_LOG_FILE_PATH "Skip 1000g phase3 annotation (file not found)"
     cp "${OUTPUT_DIR_PATH}/annotation_temp_3.vcf" "${OUTPUT_DIR_PATH}/annotation_temp_4.vcf"
 fi
 
 if [ -f "$ESP6500SI_V2_SSA137_FILE_PATH" ]; then
-    logger INFO "Annotate variants with ESP6500 database for samples: ${green_color}${sample_ids}${reset}"
+    logger INFO $MONITORING_LOG_FILE_PATH "Annotate variants with ESP6500 database for samples: ${green_color}${sample_ids}${reset}"
     /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
         java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar annotate \
             -noId -name ESP6500_ \
@@ -89,12 +89,12 @@ if [ -f "$ESP6500SI_V2_SSA137_FILE_PATH" ]; then
             > ${OUTPUT_DIR_PATH}/annotation_temp_5.vcf \
     2>> ${MONITORING_LOG_FILE_PATH}
 else
-    logger WARNING "Skip esp6500 annotation (file not found)"
+    logger WARNING $MONITORING_LOG_FILE_PATH "Skip esp6500 annotation (file not found)"
     cp "${OUTPUT_DIR_PATH}/annotation_temp_4.vcf" "${OUTPUT_DIR_PATH}/annotation_temp_5.vcf"
 fi
 
 if [ -f "$DBSNP_138_FILE_PATH" ]; then
-    logger INFO "Annotate variants with dbSNP 138 database for samples: ${green_color}${sample_ids}${reset}"
+    logger INFO $MONITORING_LOG_FILE_PATH "Annotate variants with dbSNP 138 database for samples: ${green_color}${sample_ids}${reset}"
     /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
         java -Xmx${MAX_MEMORY_GB}g -jar  ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar annotate \
             -noId -info dbSNP138_ID,dbSNPBuildID \
@@ -104,12 +104,12 @@ if [ -f "$DBSNP_138_FILE_PATH" ]; then
             > ${OUTPUT_DIR_PATH}/annotation_temp_6.vcf \
     2>> ${MONITORING_LOG_FILE_PATH}
 else
-    logger WARNING "Skip dbSNP138 annotation (file not found)"
+    logger WARNING $MONITORING_LOG_FILE_PATH "Skip dbSNP138 annotation (file not found)"
     cp "${OUTPUT_DIR_PATH}/annotation_temp_5.vcf" "${OUTPUT_DIR_PATH}/annotation_temp_6.vcf"
 fi
 
 if [ -f "$DBNSFP_FILE_PATH" ]; then
-    logger INFO "Annotate variants with dbNSFP database for samples: ${green_color}${sample_ids}${reset}"
+    logger INFO $MONITORING_LOG_FILE_PATH "Annotate variants with dbNSFP database for samples: ${green_color}${sample_ids}${reset}"
     /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
         java -Xmx${MAX_MEMORY_GB}g -jar  \
             ${SCRIPT_DIR_PATH}/../../.pixi/envs/forge/share/snpsift-5.4.0c-0/SnpSift.jar dbnsfp -v -f "" -n \
@@ -118,14 +118,14 @@ if [ -f "$DBNSFP_FILE_PATH" ]; then
             > ${OUTPUT_DIR_PATH}/annotation_temp_7.vcf \
     2>> ${MONITORING_LOG_FILE_PATH}
 else
-    logger WARNING "Skip dbNSFP annotation (file not found)"
+    logger WARNING $MONITORING_LOG_FILE_PATH "Skip dbNSFP annotation (file not found)"
     cp "${OUTPUT_DIR_PATH}/annotation_temp_6.vcf" "${OUTPUT_DIR_PATH}/annotation_temp_7.vcf"
 fi
 
 while read -r sample; do
     sample_id=$(echo "$sample" | jq -r ".id")
 
-    logger INFO "Extract variants for ${green_color}$sample_id${reset}"
+    logger INFO $MONITORING_LOG_FILE_PATH "Extract variants for ${green_color}$sample_id${reset}"
     /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
         gatk SelectVariants \
             -V ${OUTPUT_DIR_PATH}/annotation_temp_7.vcf \
@@ -135,9 +135,9 @@ while read -r sample; do
             -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf \
     2>> ${MONITORING_LOG_FILE_PATH}
 
-    logger INFO "Generate XLSX report for ${green_color}$sample_id${reset}"
-    python3 "${SCRIPT_DIR_PATH}/../python/generate_xlsx_report.py" \
+    logger INFO $MONITORING_LOG_FILE_PATH "Generate XLSX report for ${green_color}$sample_id${reset}"
+    python3 "${SCRIPT_DIR_PATH}/../python/generate_snp_and_indel_variants_xlsx_report.py" \
         -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf \
-        -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.xlsx
+        -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.snp_and_indel_variants.xlsx
         
 done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
