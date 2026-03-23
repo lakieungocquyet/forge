@@ -10,13 +10,6 @@ import logging
 from src.python.utils.setup_logging import setup_logging
 from src.python.utils.load_yaml_file import load_yaml_file
 
-setup_logging(
-    logger_name = "logger",
-    log_file_path = f"{pathlib.Path(__file__).parent}/log/monitoring.log",
-    log_to_file = True
-)
-logger = logging.getLogger("logger")
-
 parser = argparse.ArgumentParser(
     prog="forge",
     description="Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data",
@@ -29,14 +22,14 @@ subparsers = parser.add_subparsers(
     title="subcommands",
     )
 
-# ---- callvariants ----
-callvariants_parser = subparsers.add_parser(
-    "callvariants", 
+# ----- call-variants -----
+call_variants_parser = subparsers.add_parser(
+    "call-variants", 
     help="Run variant calling pipeline",
     formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=70, width=1000),
     )
 
-callvariants_parser.add_argument(
+call_variants_parser.add_argument(
     "-I", "--input",
     required = True, 
     type = str, 
@@ -45,7 +38,7 @@ callvariants_parser.add_argument(
     help="Path to the YAML configuration file (e.g., run.yaml)"
 )
 
-callvariants_parser.add_argument(
+call_variants_parser.add_argument(
     "-O", "--output",
     required = True, 
     type = str, 
@@ -54,7 +47,7 @@ callvariants_parser.add_argument(
     help="Path to the directory where results will be stored (e.g., ~/result/)"
 )
 
-callvariants_parser.add_argument(
+call_variants_parser.add_argument(
     "-R","--reference-genome",
     required = True,
     dest="reference_genome",
@@ -62,7 +55,7 @@ callvariants_parser.add_argument(
     help="Reference genome FASTA file (e.g. hg19.fa)"
 )
 
-callvariants_parser.add_argument(
+call_variants_parser.add_argument(
     "-r", "--regions",
     dest="regions",
     metavar="<BED>",
@@ -71,7 +64,7 @@ callvariants_parser.add_argument(
     )
 )
 
-callvariants_parser.add_argument(
+call_variants_parser.add_argument(
     "--bqsr-known-sites",
     nargs="+",
     dest="bqsr_known_sites",
@@ -88,7 +81,7 @@ def parse_annotation(argument):
             "Format must be TYPE=VCF"
         )
     
-callvariants_parser.add_argument(
+call_variants_parser.add_argument(
     "--annotation-resource",
     nargs="+",               
     action="append",          
@@ -103,7 +96,7 @@ callvariants_parser.add_argument(
     )
 )
 
-callvariants_parser.add_argument(
+call_variants_parser.add_argument(
     "-t", "--threads",
     type=int,
     default=4,
@@ -111,7 +104,7 @@ callvariants_parser.add_argument(
     help="Number of threads to use (default: 4)"
 )
 
-callvariants_parser.add_argument(
+call_variants_parser.add_argument(
     "--min-memory",
     type=int,
     default=8,
@@ -119,87 +112,161 @@ callvariants_parser.add_argument(
     help="Minimum memory in GB (default: 8)"
 )
 
-callvariants_parser.add_argument(
+call_variants_parser.add_argument(
     "--max-memory",
     type=int,
     default=16,
     metavar="<GB>",
     help="Maximum memory in GB (default: 16)"
 )
-# ----------------------
+# ----- identify-hla-alleles -----
 
+identify_hla_alleles_parser = subparsers.add_parser(
+    "identify-hla-alleles", 
+    help="Run HLA typing pipeline",
+    formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=70, width=1000),
+    )
+
+identify_hla_alleles_parser.add_argument(
+    "-I", "--input",
+    required = True, 
+    type = str, 
+    dest="input",
+    metavar="<YAML>",
+    help="Path to the YAML configuration file (e.g., run.yaml)"
+)
+
+identify_hla_alleles_parser.add_argument(
+    "-O", "--output",
+    required = True, 
+    type = str, 
+    dest="output",
+    metavar="<directory>",
+    help="Path to the directory where results will be stored (e.g., ~/result/)"
+)
+
+identify_hla_alleles_parser.add_argument(
+    "-t", "--threads",
+    type=int,
+    default=4,
+    metavar="<INT>",
+    help="Number of threads to use (default: 4)"
+)
+
+# --------------------
 arguments = parser.parse_args()
 
-if arguments.command is None:
-    parser.print_help()
-    exit(0)
 
-input_yaml_file_path = arguments.input
-output_dir_path = arguments.output
-reference_genome_file_path = arguments.reference_genome
-bqsr_known_sites = arguments.bqsr_known_sites 
-regions_file_path = arguments.regions
+setup_logging(
+    logger_name = "logger",
+    log_file_path = f"{arguments.output}/log/monitoring.log",
+    log_to_file = True
+)
+logger = logging.getLogger("logger")
 
 
-annotation_resource_dict = {}
+match arguments.command:
+    case "call-variants":
+        input_yaml_file_path = arguments.input
+        output_dir_path = arguments.output
+        reference_genome_file_path = arguments.reference_genome
+        bqsr_known_sites = arguments.bqsr_known_sites 
+        regions_file_path = arguments.regions
 
-for group in arguments.annotation_resource or []:
-    for key, value in group:
-        if key in annotation_resource_dict:
-            parser.error(f"Duplicate annotation resource for '{key}'")
-        annotation_resource_dict[key] = value
+        annotation_resource_dict = {}
 
-threads = arguments.threads
-min_memory_gb = arguments.min_memory
-max_memory_gb = arguments.max_memory
+        for group in arguments.annotation_resource or []:
+            for key, value in group:
+                if key in annotation_resource_dict:
+                    parser.error(f"Duplicate annotation resource for '{key}'")
+                annotation_resource_dict[key] = value
 
-if min_memory_gb > max_memory_gb:
-    parser.error("--min-memory cannot be greater than --max-memory")
+        threads = arguments.threads
+        min_memory_gb = arguments.min_memory
+        max_memory_gb = arguments.max_memory
 
-input_data = load_yaml_file(input_yaml_file_path)
+        if min_memory_gb > max_memory_gb:
+            parser.error("--min-memory cannot be greater than --max-memory")
+
+        input_data = load_yaml_file(input_yaml_file_path)
 
 
-compute = {
-    "threads": threads,
-    "min_memory_gb": min_memory_gb,
-    "max_memory_gb": max_memory_gb
-    }
-resources = {
-    "reference_genome_file_path": reference_genome_file_path,
-    "bqsr_known_sites": bqsr_known_sites,
-    "annotation_resource_dict": annotation_resource_dict,
-    "regions_file_path": regions_file_path,
-}
-config_data = {
-    "compute": compute,
-    "resources": resources
-}
+        compute = {
+            "threads": threads,
+            "min_memory_gb": min_memory_gb,
+            "max_memory_gb": max_memory_gb
+            }
+        resources = {
+            "reference_genome_file_path": reference_genome_file_path,
+            "bqsr_known_sites": bqsr_known_sites,
+            "annotation_resource_dict": annotation_resource_dict,
+            "regions_file_path": regions_file_path,
+        }
+        config_data = {
+            "compute": compute,
+            "resources": resources
+        }
 
-context = {
-    "input_data": input_data,
-    "output_dir_path": output_dir_path,
-    "config_data": config_data
-}
-context_yaml = yaml.dump(context["input_data"], sort_keys=False, default_flow_style=False ).rstrip()
-logger.info(f"Input information:\n{context_yaml}")
+        context = {
+            "input_data": input_data,
+            "output_dir_path": output_dir_path,
+            "config_data": config_data
+        }
+        context_yaml = yaml.dump(context["input_data"], sort_keys=False, default_flow_style=False ).rstrip()
+        logger.info(f"Input information:\n{context_yaml}")
 
-context_json = json.dumps(context)
-# print(json.dumps(context, indent=4))
+        context_json = json.dumps(context)
+        # print(json.dumps(context, indent=4))
 
-subprocess.run(
-    [
-        "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/secondary_data_analysis.sh",
-        context_json
-    ], 
-    shell=False, 
-    check=True
-    )
+        subprocess.run(
+            [
+                "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/secondary_data_analysis.sh",
+                context_json
+            ], 
+            shell=False, 
+            check=True
+            )
 
-subprocess.run(
-    [
-        "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/tertiary_data_analysis.sh",
-        context_json
-    ], 
-    shell=False, 
-    check=True
-    )
+        subprocess.run(
+            [
+                "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/tertiary_data_analysis.sh",
+                context_json
+            ], 
+            shell=False, 
+            check=True
+            )
+    case "identify-hla-alleles":
+        input_yaml_file_path = arguments.input
+        output_dir_path = arguments.output
+        threads = arguments.threads
+
+        input_data = load_yaml_file(input_yaml_file_path)
+
+        compute = {
+            "threads": threads,
+            }
+        config_data = {
+            "compute": compute,
+        }
+        context = {
+            "input_data": input_data,
+            "output_dir_path": output_dir_path,
+            "config_data": config_data
+        }
+        context_yaml = yaml.dump(context["input_data"], sort_keys=False, default_flow_style=False ).rstrip()
+        logger.info(f"Input information:\n{context_yaml}")
+
+        context_json = json.dumps(context)
+        subprocess.run(
+            [
+                "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/identify_hla_alleles.sh",
+                context_json
+            ], 
+            shell=False, 
+            check=True
+            )
+    case None:
+        parser.print_help()
+    case _:
+        logger.error(f"Unknown command: {arguments.command}")
+        parser.print_help()
