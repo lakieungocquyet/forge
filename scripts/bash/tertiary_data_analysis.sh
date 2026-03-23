@@ -135,7 +135,7 @@ while read -r sample; do
             -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf \
     2>> ${MONITORING_LOG_FILE_PATH}
 
-    logger INFO $MONITORING_LOG_FILE_PATH "Generate XLSX report for ${green_color}$sample_id${reset}"
+    logger INFO $MONITORING_LOG_FILE_PATH "Generate SNP and Indel variants XLSX report for ${green_color}$sample_id${reset}"
     python3 "${SCRIPT_DIR_PATH}/../python/generate_snp_and_indel_variants_xlsx_report.py" \
         -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf \
         -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.snp_and_indel_variants.xlsx
