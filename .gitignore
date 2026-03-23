@@ -4,5 +4,4 @@ pixi.toml
 # !.pixi/config.toml
 resources/*
 results/*
-log/*
 
