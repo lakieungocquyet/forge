@@ -167,3 +167,25 @@ options:
   -O <directory>, --output <directory>  Path to the directory where results will be stored (e.g., ~/result/)
   -t <INT>, --threads <INT>             Number of threads to use (default: 4)
 ```
+
+# Dependencies
+
+This tool relies on multiple third-party tools and Python libraries.
+
+## External tools
+- `bwa` -  [Github](https://github.com/lh3/bwa) | [Website](https://bio-bwa.sourceforge.net/)
+- `samtools` -  [Github](https://github.com/samtools/samtools) | [Website](https://www.htslib.org/)
+- `bcftools` -  [Github](https://github.com/samtools/bcftools) | [Website](https://samtools.github.io/bcftools/bcftools.html)
+- `gatk` -  [Github](https://github.com/broadinstitute/gatk) | [Website](https://gatk.broadinstitute.org/hc/en-us)
+- `snpeff` -  [Github](https://github.com/pcingola/SnpEff) | [Website](https://pcingola.github.io/SnpEff/)
+- `snpsift` -  [Github](https://github.com/pcingola/SnpSift) | [Website](https://pcingola.github.io/SnpEff/)
+- `t1k` -  [Github](https://github.com/mourisl/T1K) 
+
+- `jq` -  [Github](https://github.com/jqlang/jq) | [Website](https://jqlang.org/)
+## Python libraries
+
+- `pyyaml`
+- `pandas`
+- `xlsxwriter`
+- `seaborn`
+- `cyvcf2`
