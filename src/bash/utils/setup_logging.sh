@@ -7,10 +7,10 @@ declare -A LEVELS=(
 )
 
 LOG_LEVEL="INFO"
-LOG_FILE="${SCRIPT_DIR_PATH}/../../log/monitoring.log"
 function logger() {
     local level=$1
-    shift
+    LOG_FILE=$2
+    shift 2
     local message="$*"
     if [ ${LEVELS[$level]} -lt ${LEVELS[$LOG_LEVEL]} ]; then
         return
@@ -26,6 +26,8 @@ function logger() {
     # terminal (color)
     echo -e "[\e[33m$timestamp\e[0m] [${color}$level${reset}] $message"
     # echo -e "[\e[32m$timestamp\e[0m] [${color}$level${reset}] ${color}$message${reset}"
-    # file (no color)
-    echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+
+    if [[ -n "$LOG_FILE" && -d "$(dirname "$LOG_FILE")" ]]; then
+        echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+    fi
 }
