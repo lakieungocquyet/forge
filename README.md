@@ -124,16 +124,17 @@ forge callvariants \
 # All options
 ## `forge -h`
 ```
-usage: forge [-h] {callvariants} ...
+usage: forge [-h] {call-variants,identify-hla-alleles} ...
 
 Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data
 
 options:
-  -h, --help      show this help message and exit
+  -h, --help                            show this help message and exit
 
 subcommands:
-  {callvariants}
-    callvariants  Run variant calling pipeline
+  {call-variants,identify-hla-alleles}
+    call-variants                       Run variant calling pipeline
+    identify-hla-alleles                Run HLA typing pipeline
 
 Use 'forge <command> -h' for more information on a command.
 ```
@@ -155,4 +156,14 @@ options:
   -t <INT>, --threads <INT>                          Number of threads to use (default: 4)
   --max-memory <GB>                                  Maximum memory in GB (default: 16)
   --min-memory <GB>                                  Minimum memory in GB (default: 8)
+```
+## `forge identify-hla-alleles -h`
+```
+usage: forge identify-hla-alleles [-h] -I <YAML> -O <directory> [-t <INT>]
+
+options:
+  -h, --help                            show this help message and exit
+  -I <YAML>, --input <YAML>             Path to the YAML configuration file (e.g., run.yaml)
+  -O <directory>, --output <directory>  Path to the directory where results will be stored (e.g., ~/result/)
+  -t <INT>, --threads <INT>             Number of threads to use (default: 4)
 ```
