@@ -39,5 +39,10 @@ while read -r sample; do
                 -f "$REFERENCE_HLA_DNA_FILE_PATH" \
                 -o "$OUTPUT_DIR_PATH/$sample_id" \
         2>> ${MONITORING_LOG_FILE_PATH}
+
+        logger INFO $MONITORING_LOG_FILE_PATH "Generate HLA typing XLSX report for ${green_color}$sample_id${reset}"
+        python3 "${SCRIPT_DIR_PATH}/../python/generate_hla_typing_xlsx_report.py" \
+            -I "$OUTPUT_DIR_PATH/$sample_id/${sample_id}_genotype.tsv" \
+            -O "$OUTPUT_DIR_PATH/$sample_id/${sample_id}.hla_typing.xlsx"
     fi
 done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
