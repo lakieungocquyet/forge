@@ -220,16 +220,7 @@ match arguments.command:
 
         subprocess.run(
             [
-                "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/secondary_data_analysis.sh",
-                context_json
-            ], 
-            shell=False, 
-            check=True
-            )
-
-        subprocess.run(
-            [
-                "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/tertiary_data_analysis.sh",
+                "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/call_variants.sh",
                 context_json
             ], 
             shell=False, 
