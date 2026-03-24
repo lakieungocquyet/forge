@@ -17,6 +17,7 @@ OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".output_dir_path")
 mkdir -p $OUTPUT_DIR_PATH/log
 RUNTIME_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/runtime.log"
 MONITORING_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/monitoring.log"
+MONITORING_STREAM_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/.monitoring_stream"
 
 
 REFERENCE_HLA_DNA_FILE_PATH="$SCRIPT_DIR_PATH/../../resources/hla/hla_dna_seq.fa"
@@ -42,13 +43,13 @@ while read -r sample; do
                     -2 "$sample_read2" \
                     -f "$REFERENCE_HLA_DNA_FILE_PATH" \
                     -o "$OUTPUT_DIR_PATH/$sample_id/$sample_id"
-        " ${MONITORING_LOG_FILE_PATH} "Identify HLA alleles in sample ${green_color}$sample_id${reset}"
+        " ${MONITORING_LOG_FILE_PATH} ${MONITORING_STREAM_LOG_FILE_PATH} "Identify HLA alleles in sample ${green_color}$sample_id${reset}"
 
         logger INFO $MONITORING_LOG_FILE_PATH "Generate HLA typing XLSX report for ${green_color}$sample_id${reset}"
         run_command_with_monitoring " 
             python3 "${SCRIPT_DIR_PATH}/../python/generate_hla_typing_xlsx_report.py" \
                 -I "$OUTPUT_DIR_PATH/$sample_id/${sample_id}_genotype.tsv" \
                 -O "$OUTPUT_DIR_PATH/$sample_id/${sample_id}.hla_typing.xlsx"
-        " ${MONITORING_LOG_FILE_PATH} "Generate HLA typing XLSX report for ${green_color}$sample_id${reset}"
+        " ${MONITORING_LOG_FILE_PATH} ${MONITORING_STREAM_LOG_FILE_PATH} "Generate HLA typing XLSX report for ${green_color}$sample_id${reset}"
     fi
 done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
