@@ -1,0 +1,1 @@
+bash -n  "$1"  && echo 'syntax ok' || echo 'syntax error'
