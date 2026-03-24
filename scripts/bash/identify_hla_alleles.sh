@@ -31,10 +31,10 @@ while read -r sample; do
 
     mkdir -p "$OUTPUT_DIR_PATH/$sample_id/"
     if [[ ! -f "$REFERENCE_HLA_DNA_FILE_PATH" || ! -f "$REFERENCE_HLA_RNA_FILE_PATH" ]]; then
-        logger WARNING $MONITORING_LOG_FILE_PATH "Prepare HLA reference file (file not found)"
+        logger WARNING $RUNTIME_LOG_FILE_PATH "Prepare HLA reference file (file not found)"
         t1k-build.pl --download IPD-IMGT/HLA --prefix hla -o "$SCRIPT_DIR_PATH/../../resources"
     else
-        logger INFO $MONITORING_LOG_FILE_PATH "Identify HLA alleles in sample ${green_color}$sample_id${reset}"
+        logger INFO $RUNTIME_LOG_FILE_PATH "Identify HLA alleles in sample ${green_color}$sample_id${reset}"
    
         run_command_with_monitoring "     
             /usr/bin/time -v -a -o ${RUNTIME_LOG_FILE_PATH} \
@@ -45,7 +45,7 @@ while read -r sample; do
                     -o "$OUTPUT_DIR_PATH/$sample_id/$sample_id"
         " ${MONITORING_LOG_FILE_PATH} ${MONITORING_STREAM_LOG_FILE_PATH} "Identify HLA alleles in sample ${green_color}$sample_id${reset}"
 
-        logger INFO $MONITORING_LOG_FILE_PATH "Generate HLA typing XLSX report for ${green_color}$sample_id${reset}"
+        logger INFO $RUNTIME_LOG_FILE_PATH "Generate HLA typing XLSX report for ${green_color}$sample_id${reset}"
         run_command_with_monitoring " 
             python3 "${SCRIPT_DIR_PATH}/../python/generate_hla_typing_xlsx_report.py" \
                 -I "$OUTPUT_DIR_PATH/$sample_id/${sample_id}_genotype.tsv" \
