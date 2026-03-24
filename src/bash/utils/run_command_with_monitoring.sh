@@ -22,4 +22,6 @@ run_command_with_monitoring() {
     
     wait $command_pid
     kill $window_pid 2>/dev/null
+    tput rc
+    tput ed 
 }
