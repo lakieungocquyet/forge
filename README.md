@@ -1,5 +1,5 @@
 # Overview
-Pipeline for calling variants from whole exome sequencing (WES) raw data
+Workflow for whole exome sequencing (WES) raw data analysis
 
 This repository contains source code of Forge. The contents
 of this repository are 100% open source and released under the GPL-3.0 license (see [LICENSE.TXT](https://github.com/lakieungocquyet/forge/blob/main/LICENSE)).
