@@ -1,4 +1,4 @@
-forge callvariants \
+forge call-variants \
     -I ~/GitHub/forge/example/input.yaml \
     -O ~/GitHub/forge/results \
     -R ~/GitHub/forge/resources/hg19/reference_genome_hg19/hg19.p13.plusMT.no_alt_analysis_set.fa \
@@ -19,3 +19,8 @@ forge callvariants \
     -t 8 \
     --min-memory 8 \
     --max-memory 20
+
+# forge identify-hla-alleles \
+#     -I ~/GitHub/forge/example/input.yaml \
+#     -O ~/GitHub/forge/results \
+#     -t 8
