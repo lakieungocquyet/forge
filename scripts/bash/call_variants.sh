@@ -14,7 +14,7 @@ DBNSFP_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resourc
 DBSNP_138_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.dbsnp_138')"
 PHASE1_1000G_INDELS_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.phase1_1000g_indels')"
 PHASE3_1000G_V4_20130502_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.phase3_1000g_v4_20130502')"
-CLINVAR_20240716_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.clinvar')"
+CLINVAR_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.clinvar')"
 ESP6500SI_V2_SSA137_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.esp6500si_v2_ssa137')"
 
 REGIONS_FILE_PATH="$(echo "$1" | jq -r ".config_data.resources.regions_file_path")"
@@ -51,7 +51,7 @@ reset="\e[0m"
 # echo "$DBSNP_138_FILE_PATH"
 # echo "$PHASE1_1000G_INDELS_FILE_PATH"
 # echo "$PHASE3_1000G_V4_20130502_FILE_PATH"
-# echo "$CLINVAR_20240716_FILE_PATH"
+# echo "$CLINVAR_FILE_PATH"
 # echo "$ESP6500SI_V2_SSA137_FILE_PATH"
 
 # echo "$REGIONS_FILE_PATH"
@@ -123,7 +123,7 @@ while read -r sample; do
                 gatk BaseRecalibrator \
                     -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
                     -R ${REFERENCE_GENOME_FILE_PATH} \
-                    "${BQSR_FLAGS[@]}" \
+                    ${BQSR_FLAGS[@]} \
                     -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.recal_data.table
         " ${MONITORING_LOG_FILE_PATH} ${MONITORING_STREAM_LOG_FILE_PATH} "Recalibrate base quality for ${green_color}$sample_id${reset}"
 
