@@ -18,12 +18,25 @@ parser = argparse.ArgumentParser(
     )
 
 subparsers = parser.add_subparsers(
-    dest="command", 
-    title="subcommands",
-    )
+    dest="group", 
+    title="groups",
+    help="Available groups"
+)
+
+workflow_parser = subparsers.add_parser(
+    "workflow",
+    help="Workflow pipelines",
+    formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=70, width=1000),
+)
+
+workflow_subparsers = workflow_parser.add_subparsers(
+    dest="workflow_command",
+    title="workflow commands",
+    help="Available workflows"
+)
 
 # ----- call-variants -----
-call_variants_parser = subparsers.add_parser(
+call_variants_parser = workflow_subparsers.add_parser(
     "call-variants", 
     help="Run variant calling pipeline",
     formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=70, width=1000),
@@ -121,7 +134,7 @@ call_variants_parser.add_argument(
 )
 # ----- identify-hla-alleles -----
 
-identify_hla_alleles_parser = subparsers.add_parser(
+identify_hla_alleles_parser = workflow_subparsers.add_parser(
     "identify-hla-alleles", 
     help="Run HLA typing pipeline",
     formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=70, width=1000),
@@ -156,23 +169,27 @@ identify_hla_alleles_parser.add_argument(
 # --------------------
 arguments = parser.parse_args()
 
+if arguments.group is None:
+    parser.print_help()
+    sys.exit(1)
 
-setup_logging(
-    logger_name = "logger",
-    log_file_path = f"{arguments.output}/log/monitoring.log",
-    log_to_file = True
-)
-logger = logging.getLogger("logger")
+if arguments.group == "workflow" and arguments.workflow_command is None:
+    workflow_parser.print_help()
+    sys.exit(1)
 
-
-match arguments.command:
-    case "call-variants":
+match (arguments.group, arguments.workflow_command):
+    case ("workflow", "call-variants"):
         input_yaml_file_path = arguments.input
         output_dir_path = arguments.output
         reference_genome_file_path = arguments.reference_genome
         bqsr_known_sites = arguments.bqsr_known_sites 
         regions_file_path = arguments.regions
-
+        setup_logging(
+            logger_name = "logger",
+            log_file_path = f"{arguments.output}/log/monitoring.log",
+            log_to_file = True
+        )
+        logger = logging.getLogger("logger")
         annotation_resource_dict = {}
 
         for group in arguments.annotation_resource or []:
@@ -226,12 +243,19 @@ match arguments.command:
             shell=False, 
             check=True
             )
-    case "identify-hla-alleles":
+    case ("workflow", "identify-hla-alleles"):
         input_yaml_file_path = arguments.input
         output_dir_path = arguments.output
         threads = arguments.threads
 
         input_data = load_yaml_file(input_yaml_file_path)
+
+        setup_logging(
+            logger_name = "logger",
+            log_file_path = f"{arguments.output}/log/monitoring.log",
+            log_to_file = True
+        )
+        logger = logging.getLogger("logger")
 
         compute = {
             "threads": threads,
@@ -257,7 +281,4 @@ match arguments.command:
             check=True
             )
     case None:
-        parser.print_help()
-    case _:
-        logger.error(f"Unknown command: {arguments.command}")
         parser.print_help()
