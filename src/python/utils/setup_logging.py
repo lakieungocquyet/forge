@@ -28,12 +28,19 @@ def setup_logging(
         level = record.levelname
         message = record.getMessage()
 
+        LEVEL_WIDTH = 9
+
+        raw_block = f"[{level}]"
+        level_block = raw_block.ljust(LEVEL_WIDTH)
+
         if use_color:
             color = COLORS.get(level, "")
-            return f"[\033[33m{timestamp}\033[0m] [{color}{level}{RESET}] {message}"
-            # return f"[\033[33m{timestamp}\033[0m] [{color}{level}{RESET}] {color}{message}{RESET}"
-        else:
-            return f"[{timestamp}] [{level}] {message}"
+            level_colored = f"{color}{level}{RESET}"
+
+            level_block = level_block.replace(level, level_colored)
+            timestamp = f"\033[33m{timestamp}\033[0m"
+
+        return f"[{timestamp}] {level_block} {message}"
         
 
     class SimpleFormatter(logging.Formatter):
