@@ -186,7 +186,7 @@ match (arguments.group, arguments.workflow_command):
         regions_file_path = arguments.regions
         setup_logging(
             logger_name = "logger",
-            log_file_path = f"{arguments.output}/log/monitoring.log",
+            log_file_path = f"{arguments.output}/log/runtime.log",
             log_to_file = True
         )
         logger = logging.getLogger("logger")
@@ -256,7 +256,7 @@ match (arguments.group, arguments.workflow_command):
 
         setup_logging(
             logger_name = "logger",
-            log_file_path = f"{arguments.output}/log/monitoring.log",
+            log_file_path = f"{arguments.output}/log/runtime.log",
             log_to_file = True
         )
         logger = logging.getLogger("logger")
