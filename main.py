@@ -234,15 +234,19 @@ match (arguments.group, arguments.workflow_command):
 
         context_json = json.dumps(context)
         # print(json.dumps(context, indent=4))
-
-        subprocess.run(
-            [
-                "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/call_variants.sh",
-                context_json
-            ], 
-            shell=False, 
-            check=True
-            )
+        try:
+            subprocess.run(
+                [
+                    "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/call_variants.sh",
+                    context_json
+                ], 
+                shell=False, 
+                check=True
+                )
+        except KeyboardInterrupt:
+            pass
+        finally:
+            sys.exit(0) 
     case ("workflow", "identify-hla-alleles"):
         input_yaml_file_path = arguments.input
         output_dir_path = arguments.output
@@ -272,13 +276,18 @@ match (arguments.group, arguments.workflow_command):
         logger.info(f"Input information:\n{context_yaml}")
 
         context_json = json.dumps(context)
-        subprocess.run(
-            [
-                "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/identify_hla_alleles.sh",
-                context_json
-            ], 
-            shell=False, 
-            check=True
-            )
+        try:
+            subprocess.run(
+                [
+                    "bash", f"{pathlib.Path(__file__).parent}/scripts/bash/identify_hla_alleles.sh",
+                    context_json
+                ], 
+                shell=False, 
+                check=True
+                )
+        except KeyboardInterrupt:
+            pass
+        finally:
+            sys.exit(0) 
     case None:
         parser.print_help()
