@@ -24,10 +24,10 @@ function logger() {
     esac
     reset="\e[0m"
     # terminal (color)
-    echo -e "[\e[33m$timestamp\e[0m] [${color}$level${reset}] $message"
+    echo -e "[\e[33m$timestamp\e[0m] [${color}$level${reset}]$(printf "%*s" $((9 - ${#level} - 2)) "") $message"
     # echo -e "[\e[32m$timestamp\e[0m] [${color}$level${reset}] ${color}$message${reset}"
 
     if [[ -n "$LOG_FILE" && -d "$(dirname "$LOG_FILE")" ]]; then
-        echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+        echo "[$timestamp] [$level]$(printf "%*s" $((9 - ${#level} - 2)) "") $message" >> "$LOG_FILE"
     fi
 }
