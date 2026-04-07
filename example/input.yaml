@@ -1,17 +1,17 @@
 # Please don't use tab characters for indentation in this file. Use spaces only.
 sample: [
-  { 
-    id: NF2_01, 
-    platform: "illumina", 
-    read1: /home/lknq/WES_samples/NF2_01/NF2_01_1.trim.fastq.gz,
-    read2: /home/lknq/WES_samples/NF2_01/NF2_01_2.trim.fastq.gz
-  },
   # { 
-  #   id: RGNC07, 
+  #   id: NS1_01, 
   #   platform: "illumina", 
-  #   read1: /home/lknq/WES_samples/RGNC07/RGNC07_1.trim.fastq.gz,
-  #   read2: /home/lknq/WES_samples/RGNC07/RGNC07_2.trim.fastq.gz
+  #   read1: /home/lknq/WES_samples/NS1_01/NS1_01_1.fastq.gz,
+  #   read2: /home/lknq/WES_samples/NS1_01/NS1_01_2.fastq.gz
   # },
+  { 
+    id: RGNC10, 
+    platform: "illumina", 
+    read1: /home/lknq/WES_samples/RGNC10/RGNC10_1.fastq.gz,
+    read2: /home/lknq/WES_samples/RGNC10/RGNC10_2.fastq.gz
+  },
   # You can add more samples as needed
   # { 
   #   id: sample1, 
