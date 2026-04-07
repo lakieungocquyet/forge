@@ -1,16 +1,28 @@
 run_command_with_monitoring() {
     local command="$1"
-    local log_file="$2"
-    local ui_file="$3"
-    local step_name="$4"
-    : > "$ui_file"
+    
+    local workflow_tilte="$2"
 
-    stdbuf -oL -eL bash -c "$command" 2>&1 \
-        |stdbuf -oL tee -a "$log_file" "$ui_file" >/dev/null &
+    local monitoring_file="$3"
+    local monitoring_stream_file="$4"
+    local workflow_status_file="$5"
+    local workflow_progress_file="$6"
+
+    # (
+    #     stdbuf -oL -eL "$command"
+    # ) 2>&1 | stdbuf -oL tee -a "$monitoring_file" "$monitoring_stream_file" >/dev/null &
+
+    (
+        $command
+    ) 2>&1 | tee -a "$monitoring_file" "$monitoring_stream_file" >/dev/null &
 
     local command_pid=$!
 
-    render_monitoring_window "$ui_file" "$step_name" &
+    render_monitoring_window \
+        "$workflow_tilte" \
+        "$monitoring_stream_file" \
+        "$workflow_status_file" \
+        "$workflow_progress_file" &
     local window_pid=$!
     
     while kill -0 $command_pid 2>/dev/null; do
