@@ -1,5 +1,4 @@
 import sys
-
 sys.dont_write_bytecode = True
 import argparse
 import subprocess
@@ -12,7 +11,7 @@ from src.python.utils.load_yaml_file import load_yaml_file
 
 parser = argparse.ArgumentParser(
     prog="forge",
-    description="Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data",
+    description="Forge: Bioinformatics workflow for sequencing analysis",
     epilog="Use 'forge <command> -h' for more information on a command.",
     formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=70, width=100),
     )
@@ -42,7 +41,12 @@ call_variants_parser = workflow_subparsers.add_parser(
     formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=70, width=1000),
     )
 
-call_variants_parser.add_argument(
+call_variants_required_arguments = call_variants_parser.add_argument_group(
+    title="Required arguments",
+    description=None
+)
+
+call_variants_required_arguments.add_argument(
     "-I", "--input",
     required = True, 
     type = str, 
@@ -51,7 +55,7 @@ call_variants_parser.add_argument(
     help="Path to the YAML configuration file (e.g., run.yaml)"
 )
 
-call_variants_parser.add_argument(
+call_variants_required_arguments.add_argument(
     "-O", "--output",
     required = True, 
     type = str, 
@@ -60,7 +64,7 @@ call_variants_parser.add_argument(
     help="Path to the directory where results will be stored (e.g., ~/result/)"
 )
 
-call_variants_parser.add_argument(
+call_variants_required_arguments.add_argument(
     "-R","--reference-genome",
     required = True,
     dest="reference_genome",
@@ -68,7 +72,12 @@ call_variants_parser.add_argument(
     help="Reference genome FASTA file (e.g. hg19.fa)"
 )
 
-call_variants_parser.add_argument(
+call_variants_optional_arguments = call_variants_parser.add_argument_group(
+    title="Optional arguments",
+    description=None
+)
+
+call_variants_optional_arguments.add_argument(
     "-r", "--regions",
     dest="regions",
     metavar="<BED>",
@@ -77,7 +86,7 @@ call_variants_parser.add_argument(
     )
 )
 
-call_variants_parser.add_argument(
+call_variants_optional_arguments.add_argument(
     "--bqsr-known-sites",
     nargs="+",
     dest="bqsr_known_sites",
@@ -94,22 +103,21 @@ def parse_annotation(argument):
             "Format must be TYPE=VCF"
         )
     
-call_variants_parser.add_argument(
+call_variants_optional_arguments.add_argument(
     "--annotation-resource",
     nargs="+",               
     action="append",          
     type=parse_annotation,
     metavar="<TYPE=VCF>",
     help=(
-        "Annotation resources. Can be used in two forms:\n"
+        "Annotation resources [available types: dbsnp_138, clinvar, dbnsfp, phase1_1000g_indels, esp6500si_v2_ssa137, phase3_1000g_v4_20130502, omni2_5_1000g]\n"
+        "Can be used in two forms:\n"
         " --annotation-resource dbsnp=1.vcf\n"
-        " --annotation-resource dbsnp=1.vcf clinvar=2.vcf\n"
-        "Available types: dbsnp_138, clinvar, dbnsfp, phase1_1000g_indels, "
-        "esp6500si_v2_ssa137, phase3_1000g_v4_20130502, omni2_5_1000g."
+        " --annotation-resource dbsnp=1.vcf clinvar=2.vcf"
     )
 )
 
-call_variants_parser.add_argument(
+call_variants_optional_arguments.add_argument(
     "-t", "--threads",
     type=int,
     default=4,
@@ -117,7 +125,7 @@ call_variants_parser.add_argument(
     help="Number of threads to use (default: 4)"
 )
 
-call_variants_parser.add_argument(
+call_variants_optional_arguments.add_argument(
     "--min-memory",
     type=int,
     default=8,
@@ -125,7 +133,7 @@ call_variants_parser.add_argument(
     help="Minimum memory in GB (default: 8)"
 )
 
-call_variants_parser.add_argument(
+call_variants_optional_arguments.add_argument(
     "--max-memory",
     type=int,
     default=16,
@@ -140,7 +148,12 @@ identify_hla_alleles_parser = workflow_subparsers.add_parser(
     formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=70, width=1000),
     )
 
-identify_hla_alleles_parser.add_argument(
+identify_hla_alleles_required_arguments = identify_hla_alleles_parser.add_argument_group(
+    title="Required arguments",
+    description=None
+)
+
+identify_hla_alleles_required_arguments.add_argument(
     "-I", "--input",
     required = True, 
     type = str, 
@@ -149,7 +162,7 @@ identify_hla_alleles_parser.add_argument(
     help="Path to the YAML configuration file (e.g., run.yaml)"
 )
 
-identify_hla_alleles_parser.add_argument(
+identify_hla_alleles_required_arguments.add_argument(
     "-O", "--output",
     required = True, 
     type = str, 
@@ -158,7 +171,12 @@ identify_hla_alleles_parser.add_argument(
     help="Path to the directory where results will be stored (e.g., ~/result/)"
 )
 
-identify_hla_alleles_parser.add_argument(
+identify_hla_alleles_arguments = identify_hla_alleles_parser.add_argument_group(
+    title="Optional arguments",
+    description=None
+)
+
+identify_hla_alleles_arguments.add_argument(
     "-t", "--threads",
     type=int,
     default=4,
