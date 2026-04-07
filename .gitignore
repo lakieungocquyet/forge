@@ -1,7 +1,5 @@
-pixi.lock
-pixi.toml
-.pixi/*
-# !.pixi/config.toml
+test/*
 resources/*
 results/*
+
 
