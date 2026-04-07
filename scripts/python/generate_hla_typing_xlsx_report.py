@@ -28,12 +28,19 @@ arguments = parser.parse_args()
 input_file_path = arguments.input
 output_file_path = arguments.output
 
-
 HEADER = [
-    "Gene_name", "Number_of_different_alleles", 
-    "Allele_1", "Abundance_allele_1", "Quality_allele_1",
-    "Allele_2", "Abundance_allele_2", "Quality_allele_2",
+    "Gene_name","Number_of_different_alleles", 
+    "Allele_1","Abundance_allele_1","Quality_allele_1", 
+    "Allele_2","Abundance_allele_2","Quality_allele_2",
     "Secondary_alleles"
+]
+
+NEW_HEADER = [
+    "Gene_name", "Number_of_different_alleles", 
+    "Allele_1", "Allele_2", 
+    "Secondary_alleles",
+    "Abundance_allele_1", "Abundance_allele_2",
+    "Quality_allele_1", "Quality_allele_2"
 ]
 
 data_frame = pd.read_csv(
@@ -42,6 +49,7 @@ data_frame = pd.read_csv(
     header=None,
     names=HEADER
 )
+data_frame = data_frame[NEW_HEADER]
 
 with pd.ExcelWriter(f"{output_file_path}", engine="xlsxwriter") as writer:
     data_frame_filled = data_frame.fillna(".")
@@ -79,22 +87,22 @@ with pd.ExcelWriter(f"{output_file_path}", engine="xlsxwriter") as writer:
     for i, col in enumerate(data_frame.columns):
 
         if col == "Gene_name":
-            worksheet.set_column(i, i, 15, wrap_format)
+            worksheet.set_column(i, i, 10, wrap_format)
 
         elif col == "Number_of_different_alleles":
             worksheet.set_column(i, i, 30, wrap_format)
 
         elif col in ["Allele_1", "Allele_2"]:
-            worksheet.set_column(i, i, 40, wrap_format)
+            worksheet.set_column(i, i, 20, wrap_format)
 
         elif col in ["Abundance_allele_1", "Abundance_allele_2"]:
             worksheet.set_column(i, i, 20, wrap_format)
 
         elif col in ["Quality_allele_1", "Quality_allele_2"]:
-            worksheet.set_column(i, i, 15, wrap_format)
+            worksheet.set_column(i, i, 20, wrap_format)
 
         elif col == "Secondary_alleles":
-            worksheet.set_column(i, i, 40, wrap_format)
+            worksheet.set_column(i, i, 20, wrap_format)
 
         else:
             worksheet.set_column(i, i, 20, wrap_format)
