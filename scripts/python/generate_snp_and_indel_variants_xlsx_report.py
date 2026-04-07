@@ -189,8 +189,8 @@ for record in VCF_FILE:
     # ==================================================================================================== #
     row["REF_AA_dbnsfp"] = record.INFO.get("dbNSFP_aaref", None)
     row["ALT_AA_dbnsfp"] = record.INFO.get("dbNSFP_aaalt", None)
-    row["hg19_chr"] = record.INFO.get("dbNSFP_hg19_chr", None)
-    row["hg19_pos(1-based)"] = record.INFO.get("dbNSFP_hg19_pos_1_based_", None)
+    row["hg38_chr"] = record.INFO.get("dbNSFP_hg38_chr", None)
+    row["hg38_pos(1-based)"] = record.INFO.get("dbNSFP_hg38_pos_1_based_", None)
     row["cds_strand"] = record.INFO.get("dbNSFP_cds_strand", None)
     row["refcodon"] = record.INFO.get("dbNSFP_refcodon", None)
     row["codonpos"] = record.INFO.get("dbNSFP_codonpos", None)
