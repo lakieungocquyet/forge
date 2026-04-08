@@ -180,7 +180,6 @@ render_current_progress_frame() {
 
 render_monitoring_frame() {
     local cols=$1
-
     local inner_width=$((cols - 4))
     local MONITORING_FRAME_TOTAL_LINES=$(( $rows - $WORKFLOW_TITLE_TOTAL_LINES - $WORKFLOW_STATUS_FRAME_TOTAL_LINES - $CURRENT_PROGRESS_FRAME_TOTAL_LINES ))
     local MONITORING_CONTENT_TOTAL_LINES=$(( $MONITORING_FRAME_TOTAL_LINES - 2 ))
@@ -197,49 +196,22 @@ render_monitoring_frame() {
     for ((i=0; i<right; i++)); do printf "─"; done
     printf "╮${RESET}"
     # --------------------------------------------------
-    mapfile -t lines < <(tail -n "$MONITORING_CONTENT_TOTAL_LINES" "$monitoring_stream_file")
     
+    mapfile -t lines < <(
+        tail -n "$MONITORING_CONTENT_TOTAL_LINES" "$monitoring_stream_file" \
+        | sed -E 's/\x1B\[[0-9;]*[mK]//g' \
+        | expand -t 4 \
+        | tr -d '\r' \
+        | perl -CS -pe 's/\x{202F}|\x{00A0}/ /g' \
+        | fold -sw "$inner_width" \
+        | tail -n "$MONITORING_CONTENT_TOTAL_LINES"
+    )
+
     local printed=0
 
     for line in "${lines[@]}"; do
-        local plain 
-
-        plain=$(printf "%s" "$line" \
-            | sed -E 's/\x1B\[[0-9;]*[mK]//g' \
-            | perl -CS -pe 's/\x{202F}|\x{00A0}/ /g')
-            
-        local plain_len=${#plain}
-
-        if [[ -z "$plain" ]]; then
-            printf "${COLOR_BORDER}│${RESET} %-*s ${COLOR_BORDER}│${RESET}\n" "$inner_width" ""
-            ((printed++))
-            [[ $printed -ge $MONITORING_CONTENT_TOTAL_LINES ]] && break
-            continue
-        fi
-
-        # while [[ -n "$plain" && $printed -lt $MONITORING_CONTENT_TOTAL_LINES ]]; do
-        #     local chunk_plain="${plain:0:$inner_width}"
-
-        #     local chunk="$chunk_plain"
-
-        #     printf "${COLOR_BORDER}│${RESET} %-*s ${COLOR_BORDER}│${RESET}\n" \
-        #         "$inner_width" "$chunk"
-
-        #     plain="${plain:$inner_width}"
-        #     ((printed++))
-        # done
-
-        while IFS= read -r wrapped_line && (( printed < MONITORING_CONTENT_TOTAL_LINES )); do
-            # wrapped_line="${wrapped_line:0:$inner_width}" 
-            
-            printf "${COLOR_BORDER}│${RESET} %-*.*s ${COLOR_BORDER}│${RESET}\n" \
-                "$inner_width" "$inner_width" "$wrapped_line"
-
-            ((printed++))
-            [[ $printed -ge $MONITORING_CONTENT_TOTAL_LINES ]] && break
-        done < <(printf "%s\n" "$plain" | fold -sw "$inner_width")
-
-        [[ $printed -ge $MONITORING_CONTENT_TOTAL_LINES ]] && break
+        printf "${COLOR_BORDER}│${RESET} %-*s ${COLOR_BORDER}│${RESET}\n" "$inner_width" "$line"
+        ((printed++))
     done
 
     for ((j=printed; j<MONITORING_CONTENT_TOTAL_LINES; j++)); do
@@ -250,7 +222,6 @@ render_monitoring_frame() {
     for ((i=0; i<cols-2; i++)); do printf "─"; done
     printf "╯${RESET}"
 }
-
 # ----------------------------------------------------------------------------------------------------
 
 
