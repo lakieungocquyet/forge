@@ -16,7 +16,7 @@ forge workflow call-variants \
         dbnsfp=/home/lknq/resources/generated/dbnsfp4_9a_hg19/processed/dbnsfp4.9a_hg19.txt.bgz \
         esp6500si_v2_ssa137=/home/lknq/resources/generated/esp6500si_v2_ssa137_hg19/processed/esp6500si_v2_ssa137.hg19.vcf.bgz \
         phase3_1000g_v4_20130502=/home/lknq/resources/generated/1000g_phase3_v4_20130502_sites_hg19/processed/1000G_phase3_v4_20130502.sites.hg19.vcf.bgz \
-    -t 10 \
+    -t 8 \
     --min-memory 8 \
     --max-memory 20
 
