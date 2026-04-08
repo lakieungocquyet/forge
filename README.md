@@ -37,7 +37,7 @@ git clone https://github.com/lakieungocquyet/forge.git
 cd forge && source install.sh
 ```
 
-# How to use
+<!-- # How to use
 ### 1. Prepare input data
 Prepare your Whole Exome Sequencing (WES) raw data (typically FASTQ files). 
 
@@ -120,44 +120,51 @@ forge callvariants \
     -t 8 \
     --min-memory 8 \
     --max-memory 20
+``` -->
+# Commands
+
+`forge` provides many commands for analyzing sequencing data. You can access help from the command line with the `--help` flag:
 ```
-# All options
-## `forge -h`
+forge --help
 ```
-usage: forge [-h] {call-variants,identify-hla-alleles} ...
 
-Forge: Variant calling pipeline for Whole Exome Sequencing (WES) data
+The following commands are part of `forge`
 
-options:
-  -h, --help                            show this help message and exit
+## `forge workflow`
 
-subcommands:
-  {call-variants,identify-hla-alleles}
-    call-variants                       Run variant calling pipeline
-    identify-hla-alleles                Run HLA typing pipeline
+| Command | Description |
+|---------|-------------|
+| [`call-variants`](#forge-workflow-call-variants) | Run variant calling pipeline |
+| [`identify-hla-alleles`](#forge-workflow-identify-hla-alleles) | Run HLA typing pipeline |
+| `--help` | Show help message for `forge workflow` and exit |
 
-Use 'forge <command> -h' for more information on a command.
+### `forge workflow call-variants`
 ```
-## `forge callvariants -h`
+Usage: forge workflow call-variants [-h] -I <YAML> -O <directory> -R <FASTA> [-r <BED>] [--bqsr-known-sites <VCF> [<VCF> ...]] [--annotation-resource <TYPE=VCF> [<TYPE=VCF> ...]] [-t <INT>] [--min-memory <GB>] [--max-memory <GB>]
 ```
-usage: forge callvariants [-h] -I <YAML> -O <directory> -R <FASTA> [-r <BED>] [--bqsr-known-sites <VCF> [<VCF> ...]] [--annotation-resource <TYPE=VCF> [<TYPE=VCF> ...]] [-t <INT>] [--max-memory <GB>] [--min-memory <GB>]
 
+```
 options:
   -h, --help                                         show this help message and exit
+
+Required arguments:
   -I <YAML>, --input <YAML>                          Path to the YAML configuration file (e.g., run.yaml)
   -O <directory>, --output <directory>               Path to the directory where results will be stored (e.g., ~/result/)
   -R <FASTA>, --reference-genome <FASTA>             Reference genome FASTA file (e.g. hg19.fa)
+
+Optional arguments:
   -r <BED>, --regions <BED>                          Genomic regions to process. Accepts BED file
   --bqsr-known-sites <VCF> [<VCF> ...]               List of known sites for Base Quality Score Recalibration (e.g., dbsnp.vcf.gz mills.vcf.gz)
-  --annotation-resource <TYPE=VCF> [<TYPE=VCF> ...]  Annotation resources. Can be used in two forms:
+  --annotation-resource <TYPE=VCF> [<TYPE=VCF> ...]  Annotation resources [available types: dbsnp_138, clinvar, dbnsfp, phase1_1000g_indels, esp6500si_v2_ssa137, phase3_1000g_v4_20130502, omni2_5_1000g]
+                                                     Can be used in two forms:
                                                       --annotation-resource dbsnp=1.vcf
                                                       --annotation-resource dbsnp=1.vcf clinvar=2.vcf
-                                                     Available types: dbsnp_138, clinvar, dbnsfp, phase1_1000g_indels, esp6500si_v2_ssa137, phase3_1000g_v4_20130502, omni2_5_1000g.
   -t <INT>, --threads <INT>                          Number of threads to use (default: 4)
-  --max-memory <GB>                                  Maximum memory in GB (default: 16)
   --min-memory <GB>                                  Minimum memory in GB (default: 8)
+  --max-memory <GB>                                  Maximum memory in GB (default: 16)
 ```
-## `forge identify-hla-alleles -h`
+
+### `forge workflow identify-hla-alleles`
 ```
 usage: forge identify-hla-alleles [-h] -I <YAML> -O <directory> [-t <INT>]
 
