@@ -1,6 +1,6 @@
 forge workflow call-variants \
-    -I ~/GitHub/forge/example/input.yaml \
-    -O ~/GitHub/forge/results \
+    -I /home/lknq/GitHub/forge/example/input.yaml \
+    -O /home/lknq/GitHub/forge/results \
     -R ~/resources/generated/reference_genome_hg19/processed/hg19.p13.plusMT.no_alt_analysis_set.fa \
     -r ~/GitHub/forge/resources/hg19/regions_hg19/s07604624_hg19/s07604624_covered.bed \
     --bqsr-known-sites \
@@ -16,7 +16,7 @@ forge workflow call-variants \
         dbnsfp=/home/lknq/resources/generated/dbnsfp4_9a_hg19/processed/dbnsfp4.9a_hg19.txt.bgz \
         esp6500si_v2_ssa137=/home/lknq/resources/generated/esp6500si_v2_ssa137_hg19/processed/esp6500si_v2_ssa137.hg19.vcf.bgz \
         phase3_1000g_v4_20130502=/home/lknq/resources/generated/1000g_phase3_v4_20130502_sites_hg19/processed/1000G_phase3_v4_20130502.sites.hg19.vcf.bgz \
-    -t 8 \
+    -t 10 \
     --min-memory 8 \
     --max-memory 20
 
