@@ -7,6 +7,12 @@
 #     fi
 # }
 
+cyan_color="\e[36m"  # cyan
+green_color="\e[32m"   # green
+yellow_color="\e[33m" # yellow
+red_color="\e[31m"   # red
+reset="\e[0m"
+
 # anchor_row=$(get_cursor_row)
 # echo $anchor_row
 
@@ -33,6 +39,15 @@ resume() {
 trap 'cleanup_suspend; kill -TSTP $$' TSTP # Pause main process
 trap 'resume' CONT # Resume main process
 trap cleanup INT TERM # End main process
+# ----------------------------------------------------------------------------------------------------
+
+render_workflow_status_title() {
+    local cols=$1
+    local line_width=$cols
+    workflow_tilte_len=${#workflow_tilte}
+    local padding=$(((line_width - workflow_tilte_len) / 2))
+    printf "%*s${yellow_color}%s${reset}%*s\n" $padding "" "$workflow_tilte" $(( line_width - workflow_tilte_len - padding )) ""
+}
 
 # ----------------------------------------------------------------------------------------------------
 
@@ -75,21 +90,39 @@ render_workflow_status_frame() {
     fi
     # --------------------------------------------------
     for ((i=status_offset; i<status_offset+visible_slots && i<total; i++)); do
-        IFS='|' read -r step status <<< "${status_lines[$i]}"
+        IFS='|' read -r step_index step status <<< "${status_lines[$i]}"
 
         local badge
+        local step_index_width=5
         local badge_width=3
-        local step_width=$((inner_width - badge_width - 1))
+        local step_width=$((inner_width - step_index_width - badge_width - 2))
+
+        local badge_color
 
         case "$status" in
-            DONE) badge="[✓]" ;;
-            RUNNING) badge="[${spin:$s:1}]" ;;
-            PENDING) badge="[•]" ;;
-            FAILED) badge="[x]" ;;
-            *) badge="[$status]" ;;
+            DONE)
+                badge="[✓]"
+                badge_color="${green_color}"
+                ;;
+            RUNNING)
+                badge="[${spin:$s:1}]"
+                badge_color="${reset}"
+                ;;
+            PENDING)
+                badge="[•]"
+                badge_color="${yellow_color}"
+                ;;
+            FAILED)
+                badge="[x]"
+                badge_color="${red_color}"
+                ;;
+            *)
+                badge="[$status]"
+                badge_color="${reset}"
+                ;;
         esac
 
-        printf "${COLOR_BORDER}│${RESET} %-*s %-3s ${COLOR_BORDER}│${RESET}\n" "$step_width" "$step" "$badge"
+        printf "${COLOR_BORDER}│${RESET} %-5s %-*s ${badge_color}%-3s${reset} ${COLOR_BORDER}│${RESET}\n" "$step_index" "$step_width" "$step" "$badge"
 
         ((total_rendered++))
     done
@@ -149,7 +182,7 @@ render_monitoring_frame() {
     local cols=$1
 
     local inner_width=$((cols - 4))
-    local MONITORING_FRAME_TOTAL_LINES=$(( $rows - $WORKFLOW_STATUS_FRAME_TOTAL_LINES - $CURRENT_PROGRESS_FRAME_TOTAL_LINES ))
+    local MONITORING_FRAME_TOTAL_LINES=$(( $rows - $WORKFLOW_TITLE_TOTAL_LINES - $WORKFLOW_STATUS_FRAME_TOTAL_LINES - $CURRENT_PROGRESS_FRAME_TOTAL_LINES ))
     local MONITORING_CONTENT_TOTAL_LINES=$(( $MONITORING_FRAME_TOTAL_LINES - 2 ))
     # --------------------------------------------------
     local title=" MONITORING "
@@ -171,8 +204,6 @@ render_monitoring_frame() {
     for line in "${lines[@]}"; do
         local plain 
 
-        # plain=$(printf "%s" "$line" \
-        #     | sed -E 's/\x1B\[[0-9;]*[mK]//g')
         plain=$(printf "%s" "$line" \
             | sed -E 's/\x1B\[[0-9;]*[mK]//g' \
             | perl -CS -pe 's/\x{202F}|\x{00A0}/ /g')
@@ -182,22 +213,33 @@ render_monitoring_frame() {
         if [[ -z "$plain" ]]; then
             printf "${COLOR_BORDER}│${RESET} %-*s ${COLOR_BORDER}│${RESET}\n" "$inner_width" ""
             ((printed++))
+            [[ $printed -ge $MONITORING_CONTENT_TOTAL_LINES ]] && break
             continue
         fi
 
-        while [[ -n "$plain" && $printed -lt $MONITORING_CONTENT_TOTAL_LINES ]]; do
-            local chunk_plain="${plain:0:$inner_width}"
+        # while [[ -n "$plain" && $printed -lt $MONITORING_CONTENT_TOTAL_LINES ]]; do
+        #     local chunk_plain="${plain:0:$inner_width}"
 
-            local chunk="$chunk_plain"
+        #     local chunk="$chunk_plain"
 
-            printf "${COLOR_BORDER}│${RESET} %-*s ${COLOR_BORDER}│${RESET}\n" \
-                "$inner_width" "$chunk"
+        #     printf "${COLOR_BORDER}│${RESET} %-*s ${COLOR_BORDER}│${RESET}\n" \
+        #         "$inner_width" "$chunk"
 
-            plain="${plain:$inner_width}"
+        #     plain="${plain:$inner_width}"
+        #     ((printed++))
+        # done
+
+        while IFS= read -r wrapped_line && (( printed < MONITORING_CONTENT_TOTAL_LINES )); do
+            # wrapped_line="${wrapped_line:0:$inner_width}" 
+            
+            printf "${COLOR_BORDER}│${RESET} %-*.*s ${COLOR_BORDER}│${RESET}\n" \
+                "$inner_width" "$inner_width" "$wrapped_line"
+
             ((printed++))
-        done
+            [[ $printed -ge $MONITORING_CONTENT_TOTAL_LINES ]] && break
+        done < <(printf "%s\n" "$plain" | fold -sw "$inner_width")
 
-        (( printed >= MONITORING_CONTENT_TOTAL_LINES )) && break
+        [[ $printed -ge $MONITORING_CONTENT_TOTAL_LINES ]] && break
     done
 
     for ((j=printed; j<MONITORING_CONTENT_TOTAL_LINES; j++)); do
@@ -232,6 +274,8 @@ render_monitoring_window() {
     rows=$(tput lines)
     cols=$(tput cols)
 
+    WORKFLOW_TITLE_TOTAL_LINES=1
+
     WORKFLOW_STATUS_FRAME_TOTAL_LINES=10
 
     CURRENT_PROGRESS_FRAME_TOTAL_LINES=3
@@ -257,12 +301,13 @@ render_monitoring_window() {
             resized=false
         fi
 
+        render_workflow_status_title "$cols"
         render_workflow_status_frame "$cols"
         render_current_progress_frame "$cols"
         render_monitoring_frame "$cols"
 
         s=$(( (s+1) %4 ))
-        sleep 0.25
+        sleep 0.5
     done
     tput rmcup
     tput cnorm  
