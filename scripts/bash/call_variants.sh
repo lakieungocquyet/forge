@@ -117,9 +117,9 @@ call_variants_script() {
     init_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH"
     
     init_workflow_progress_file "$WORKFLOW_PROGRESS_FILE_PATH"
-    #====================================================================================================
-    #                                     SECONDARY DATA ANALYSIS
-    #====================================================================================================
+    #====================================================================================================#
+    #                                     SECONDARY DATA ANALYSIS                                        #
+    #====================================================================================================#
     while read -r sample; do
         # Extract sample metadata for the workflow
         sample_id=$(echo "$sample" | jq -r ".id")
@@ -144,12 +144,16 @@ call_variants_script() {
         append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Map and align ${green_color}$sample_id${reset} reads to reference genome"
         : > "$MONITORING_STREAM_LOG_FILE_PATH"
         /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
-            bwa mem -t ${THREADS} \
-                -R "@RG\tID:${sample_id}\tLB:lib1\tPL:${sample_platform}\tPU:unit1\tSM:${sample_id}" \
-                "${REFERENCE_GENOME_FILE_PATH}" \
-                "${sample_read1}" \
-                "${sample_read2}" | \
-            samtools sort -@ 8 -o "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam"
+            bash -c "
+                {
+                    bwa mem -t ${THREADS} \
+                        -R '@RG\tID:${sample_id}\tLB:lib1\tPL:${sample_platform}\tPU:unit1\tSM:${sample_id}' \
+                        '${REFERENCE_GENOME_FILE_PATH}' \
+                        '${sample_read1}' \
+                        '${sample_read2}' | \
+                    samtools sort -@ 8 -o '${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam'
+                }
+            "
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
     update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Map and align" "DONE"
@@ -332,9 +336,9 @@ call_variants_script() {
             "${OUTPUT_DIR_PATH}/cohort.filtered.vcf" \
             -o "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.vcf"
 
-    #====================================================================================================
-    #                                     TERTIARY DATA ANALYSIS
-    #====================================================================================================
+    #====================================================================================================#
+    #                                     TERTIARY DATA ANALYSIS                                         #
+    #====================================================================================================#
 
 
     sample_ids=$(echo "$INPUT_SAMPLE_LIST" | jq -r '.[].id' | paste -sd ", " -)
