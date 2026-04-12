@@ -16,29 +16,29 @@ reset="\e[0m"
 # anchor_row=$(get_cursor_row)
 # echo $anchor_row
 
-cleanup() {
-    trap - INT TERM EXIT
-    tput cnorm
-    tput rmcup 2>/dev/null
-    echo -e "\n[!] Exit process!"
-    exit 0
-}
+# cleanup() {
+#     trap - INT TERM EXIT
+#     tput cnorm
+#     tput rmcup 2>/dev/null
+#     echo -e "\n[!] Exit process!"
+#     exit 0
+# }
 
-cleanup_suspend() {
-    tput cnorm
-    tput rmcup 2>/dev/null
-}
+# cleanup_suspend() {
+#     tput cnorm
+#     tput rmcup 2>/dev/null
+# }
 
-resume() {
-    tput smcup
-    tput clear 
-    tput civis
-    tput sc
-}
+# resume() {
+#     tput smcup
+#     tput clear 
+#     tput civis
+#     tput sc
+# }
 
-trap 'cleanup_suspend; kill -TSTP $$' TSTP # Pause main process
-trap 'resume' CONT # Resume main process
-trap cleanup INT TERM # End main process
+# trap 'cleanup_suspend; kill -TSTP $$' TSTP # Pause main process
+# trap 'resume' CONT # Resume main process
+# trap cleanup INT TERM # End main process
 # ----------------------------------------------------------------------------------------------------
 
 render_workflow_status_title() {
@@ -86,7 +86,7 @@ render_workflow_status_frame() {
     local total_rendered=0
     if $top_ellipsis; then
         printf "${COLOR_BORDER}│${RESET} %-*s ${COLOR_BORDER}│${RESET}\n" "$inner_width" "..."
-        ((total_rendered++))
+        ((total_rendered++)) || true
     fi
     # --------------------------------------------------
     for ((i=status_offset; i<status_offset+visible_slots && i<total; i++)); do
@@ -124,12 +124,12 @@ render_workflow_status_frame() {
 
         printf "${COLOR_BORDER}│${RESET} %-5s %-*s ${badge_color}%-3s${reset} ${COLOR_BORDER}│${RESET}\n" "$step_index" "$step_width" "$step" "$badge"
 
-        ((total_rendered++))
+        ((total_rendered++)) || true
     done
     # --------------------------------------------------
     if $bottom_ellipsis; then
         printf "${COLOR_BORDER}│${RESET} %-*s ${COLOR_BORDER}│${RESET}\n" "$inner_width" "..."
-        ((total_rendered++))
+        ((total_rendered++)) || true
     fi
     # --------------------------------------------------
     for ((j=total_rendered; j<visible_slots; j++)); do
@@ -211,7 +211,7 @@ render_monitoring_frame() {
 
     for line in "${lines[@]}"; do
         printf "${COLOR_BORDER}│${RESET} %-*s ${COLOR_BORDER}│${RESET}\n" "$inner_width" "$line"
-        ((printed++))
+        ((printed++)) || true
     done
 
     for ((j=printed; j<MONITORING_CONTENT_TOTAL_LINES; j++)); do
@@ -255,13 +255,14 @@ render_monitoring_window() {
     resized=true
     trap 'resized=true' WINCH # Listen resize in subprocess
     
+    trap 'tput rmcup; tput cnorm; exit 0' TERM
+
     tput smcup
     tput clear
     tput civis 
-    tput sc
 
     while true; do
-        tput rc
+        tput cup 0 0
         if $resized; then
             rows=$(tput lines)
             cols=$(tput cols)
@@ -280,8 +281,6 @@ render_monitoring_window() {
         s=$(( (s+1) %4 ))
         sleep 0.5
     done
-    tput rmcup
-    tput cnorm  
 }
 
 
