@@ -1,3 +1,11 @@
+# set -Eeuo pipefail
+
+cyan_color="\e[36m"  # cyan
+green_color="\e[32m"   # green
+yellow_color="\e[33m" # yellow
+red_color="\e[31m"   # red
+reset="\e[0m"
+
 SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
 
 source "$SCRIPT_DIR_PATH/../../src/bash/utils/setup_logging.sh"
@@ -47,7 +55,7 @@ init_workflow_status_file() {
         "Recalibrate base quality"
         "Call variants"
         "Annotate variants"
-        "Generate reports"
+        "Generade reports"
     )
 
     : > "$status_file"
@@ -93,12 +101,6 @@ MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
 
 GVCF_COMBINE_FLAGS=()
 
-cyan_color="\e[36m"  # cyan
-green_color="\e[32m"   # green
-yellow_color="\e[33m" # yellow
-red_color="\e[31m"   # red
-reset="\e[0m"
-
 # echo "$REFERENCE_GENOME_FILE_PATH"
 
 # echo "$OMNI2_5_1000G_FILE_PATH"
@@ -143,16 +145,21 @@ call_variants_script() {
         logger INFO $RUNTIME_LOG_FILE_PATH "Map and align ${green_color}$sample_id${reset} reads to reference genome"
         append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Map and align ${green_color}$sample_id${reset} reads to reference genome"
         : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
-            bash -c "
-                {
-                    bwa mem -t ${THREADS} \
-                        -R '@RG\tID:${sample_id}\tLB:lib1\tPL:${sample_platform}\tPU:unit1\tSM:${sample_id}' \
-                        '${REFERENCE_GENOME_FILE_PATH}' \
-                        '${sample_read1}' \
-                        '${sample_read2}' | \
-                    samtools sort -@ 8 -o '${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam'
-                }
+        map_and_align_command="
+            bwa mem -t ${THREADS} \
+            -R \"@RG\tID:${sample_id}\tLB:lib1\tPL:${sample_platform}\tPU:unit1\tSM:${sample_id}\" \
+            \"${REFERENCE_GENOME_FILE_PATH}\" \
+            \"${sample_read1}\" \
+            \"${sample_read2}\" | \
+            samtools sort -@ 8 -o \"${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam\"
+        "
+        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" bash -c "
+                bwa mem -t ${THREADS} \
+                    -R \"@RG\tID:${sample_id}\tLB:lib1\tPL:${sample_platform}\tPU:unit1\tSM:${sample_id}\" \
+                    \"${REFERENCE_GENOME_FILE_PATH}\" \
+                    \"${sample_read1}\" \
+                    \"${sample_read2}\" | \
+                samtools sort -@ 8 -o \"${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam\"
             "
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
@@ -172,6 +179,7 @@ call_variants_script() {
                 -I "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam" \
                 -O "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam" \
                 -M "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.output.metrics.txt"
+
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
     update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Mark duplicates" "DONE"
@@ -475,5 +483,10 @@ call_variants_script() {
     rm -f "$MONITORING_STREAM_LOG_FILE_PATH"
 }
 
-run_command_with_monitoring "call_variants_script" \
-    "CALL VARIANTS WORKFLOW" "$MONITORING_LOG_FILE_PATH" "$MONITORING_STREAM_LOG_FILE_PATH" "$WORKFLOW_STATUS_FILE_PATH" "$WORKFLOW_PROGRESS_FILE_PATH"
+run_command_with_monitoring \
+    "call_variants_script" \
+    "CALL VARIANTS WORKFLOW" \
+    "$MONITORING_LOG_FILE_PATH" \
+    "$MONITORING_STREAM_LOG_FILE_PATH" \
+    "$WORKFLOW_STATUS_FILE_PATH" \
+    "$WORKFLOW_PROGRESS_FILE_PATH"
