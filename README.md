@@ -134,44 +134,43 @@ The following commands are part of `forge`
 
 | Command | Description |
 |---------|-------------|
-| [`call-variants`](#forge-workflow-call-variants) | Run variant calling pipeline |
-| [`identify-hla-alleles`](#forge-workflow-identify-hla-alleles) | Run HLA typing pipeline |
+| `call-variants` | Run variant calling pipeline |
+| `identify-hla-alleles` | Run HLA typing pipeline |
 | `--help` | Show help message for `forge workflow` and exit |
 
-### `forge workflow call-variants`
+* `forge workflow call-variants`
 ```
-Usage: forge workflow call-variants [-h] -I <YAML> -O <directory> -R <FASTA> [-r <BED>] [--bqsr-known-sites <VCF> [<VCF> ...]] [--annotation-resource <TYPE=VCF> [<TYPE=VCF> ...]] [-t <INT>] [--min-memory <GB>] [--max-memory <GB>]
-```
+usage: forge workflow call-variants [-h] -I <YAML> -O <directory> -R <FASTA> [-r <BED>] [--bqsr-known-sites <VCF> [<VCF> ...]] [--standard-annotation-resources <KEY=PATH> [<KEY=PATH> ...]] [-t <INT>] [--min-memory <GB>] [--max-memory <GB>]
 
-```
 options:
-  -h, --help                                         show this help message and exit
+  -h, --help                                                   show this help message and exit
 
 Required arguments:
-  -I <YAML>, --input <YAML>                          Path to the YAML configuration file (e.g., run.yaml)
-  -O <directory>, --output <directory>               Path to the directory where results will be stored (e.g., ~/result/)
-  -R <FASTA>, --reference-genome <FASTA>             Reference genome FASTA file (e.g. hg19.fa)
+  -I <YAML>, --input <YAML>                                    Path to the YAML configuration file (e.g., run.yaml)
+  -O <directory>, --output <directory>                         Path to the directory where results will be stored (e.g., ~/result/)
+  -R <FASTA>, --reference-genome <FASTA>                       Reference genome FASTA file (e.g. hg19.fa)
 
 Optional arguments:
-  -r <BED>, --regions <BED>                          Genomic regions to process. Accepts BED file
-  --bqsr-known-sites <VCF> [<VCF> ...]               List of known sites for Base Quality Score Recalibration (e.g., dbsnp.vcf.gz mills.vcf.gz)
-  --annotation-resource <TYPE=VCF> [<TYPE=VCF> ...]  Annotation resources [available types: dbsnp_138, clinvar, dbnsfp, phase1_1000g_indels, esp6500si_v2_ssa137, phase3_1000g_v4_20130502, omni2_5_1000g]
-                                                     Can be used in two forms:
-                                                      --annotation-resource dbsnp=1.vcf
-                                                      --annotation-resource dbsnp=1.vcf clinvar=2.vcf
-  -t <INT>, --threads <INT>                          Number of threads to use (default: 4)
-  --min-memory <GB>                                  Minimum memory in GB (default: 8)
-  --max-memory <GB>                                  Maximum memory in GB (default: 16)
+  -r <BED>, --regions <BED>                                    Genomic regions to process. Accepts BED file
+  --bqsr-known-sites <VCF> [<VCF> ...]                         List of known sites for Base Quality Score Recalibration (e.g., dbsnp.vcf.gz mills.vcf.gz)
+  --standard-annotation-resources <KEY=PATH> [<KEY=PATH> ...]  Grouped annotation resources.
+  -t <INT>, --threads <INT>                                    Number of threads to use (default: 4)
+  --min-memory <GB>                                            Minimum memory in GB (default: 8)
+  --max-memory <GB>                                            Maximum memory in GB (default: 16)
 ```
 
-### `forge workflow identify-hla-alleles`
+* `forge workflow identify-hla-alleles`
 ```
-usage: forge identify-hla-alleles [-h] -I <YAML> -O <directory> [-t <INT>]
+usage: forge workflow identify-hla-alleles [-h] -I <YAML> -O <directory> [-t <INT>]
 
 options:
   -h, --help                            show this help message and exit
+
+Required arguments:
   -I <YAML>, --input <YAML>             Path to the YAML configuration file (e.g., run.yaml)
   -O <directory>, --output <directory>  Path to the directory where results will be stored (e.g., ~/result/)
+
+Optional arguments:
   -t <INT>, --threads <INT>             Number of threads to use (default: 4)
 ```
 
