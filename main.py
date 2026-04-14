@@ -94,26 +94,44 @@ call_variants_optional_arguments.add_argument(
     help="List of known sites for Base Quality Score Recalibration (e.g., dbsnp.vcf.gz mills.vcf.gz)"
 )
 
-def parse_annotation(argument):
-    try:
-        key, value = argument.split("=", 1)
-        return key.lower(), value
-    except ValueError:
-        raise argparse.ArgumentTypeError(
-            "Format must be TYPE=VCF"
-        )
+def parse_standard_annotation_resources_block(items):
+    allowed = {
+        "clinvar",
+        "dbnsfp",
+        "esp6500",
+        "phase3_1000g",
+        "dbsnp_138"
+    }
+
+    standard_annotation_resources = {}
+
+    for item in items:
+        if "=" not in item:
+            parser.error(
+                f"Invalid format '{item}'. Use key=path"
+            )
+
+        key, value = item.split("=", 1)
+
+        if key not in allowed:
+            parser.error(
+                f"Unknown annotation resource: {key}"
+            )
+
+        if key in standard_annotation_resources:
+            parser.error(f"Duplicate annotation resource: {key}")
+
+        standard_annotation_resources[key] = value
+
+    return standard_annotation_resources
     
 call_variants_optional_arguments.add_argument(
-    "--annotation-resource",
-    nargs="+",               
-    action="append",          
-    type=parse_annotation,
-    metavar="<TYPE=VCF>",
+    "--standard-annotation-resources",      
+    nargs="+",
+    metavar="<KEY=PATH>",  
+    type=str,
     help=(
-        "Annotation resources [available types: dbsnp_138, clinvar, dbnsfp, phase1_1000g_indels, esp6500si_v2_ssa137, phase3_1000g_v4_20130502, omni2_5_1000g]\n"
-        "Can be used in two forms:\n"
-        " --annotation-resource dbsnp=1.vcf\n"
-        " --annotation-resource dbsnp=1.vcf clinvar=2.vcf"
+        "Grouped annotation resources.\n"
     )
 )
 
@@ -204,17 +222,14 @@ match (arguments.group, arguments.workflow_command):
         regions_file_path = arguments.regions
         setup_logging(
             logger_name = "logger",
-            log_file_path = f"{arguments.output}/log/runtime.log",
+            log_file_path = f"{arguments.output}/log/workflow.runtime.log",
             log_to_file = True
         )
         logger = logging.getLogger("logger")
-        annotation_resource_dict = {}
+        standard_annotation_resources_dict = {}
 
-        for group in arguments.annotation_resource or []:
-            for key, value in group:
-                if key in annotation_resource_dict:
-                    parser.error(f"Duplicate annotation resource for '{key}'")
-                annotation_resource_dict[key] = value
+        if arguments.standard_annotation_resources:
+            standard_annotation_resources_dict = parse_standard_annotation_resources_block(arguments.standard_annotation_resources)
 
         threads = arguments.threads
         min_memory_gb = arguments.min_memory
@@ -234,7 +249,7 @@ match (arguments.group, arguments.workflow_command):
         resources = {
             "reference_genome_file_path": reference_genome_file_path,
             "bqsr_known_sites": bqsr_known_sites,
-            "annotation_resource_dict": annotation_resource_dict,
+            "standard_annotation_resources_dict": standard_annotation_resources_dict,
             "regions_file_path": regions_file_path,
         }
         config_data = {
@@ -247,8 +262,8 @@ match (arguments.group, arguments.workflow_command):
             "output_dir_path": output_dir_path,
             "config_data": config_data
         }
-        context_yaml = yaml.dump(context["input_data"], sort_keys=False, default_flow_style=False ).rstrip()
-        logger.info(f"Input information:\n{context_yaml}")
+        # context_yaml = yaml.dump(context["input_data"], sort_keys=False, default_flow_style=False ).rstrip()
+        # logger.info(f"Input information:\n{context_yaml}")
 
         context_json = json.dumps(context)
         # print(json.dumps(context, indent=4))
