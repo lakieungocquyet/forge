@@ -17,13 +17,11 @@ OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".output_dir_path")
 
 REFERENCE_GENOME_FILE_PATH="$(echo "$1" | jq -r ".config_data.resources.reference_genome_file_path")"
 
-OMNI2_5_1000G_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.omni2_5_1000g')"
-DBNSFP_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.dbnsfp')"
-DBSNP_138_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.dbsnp_138')"
-PHASE1_1000G_INDELS_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.phase1_1000g_indels')"
-PHASE3_1000G_V4_20130502_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.phase3_1000g_v4_20130502')"
-CLINVAR_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.clinvar')"
-ESP6500SI_V2_SSA137_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.annotation_resource_dict.esp6500si_v2_ssa137')"
+DBNSFP_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.dbnsfp')"
+DBSNP_138_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.dbsnp_138')"
+PHASE3_1000G_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.phase3_1000g')"
+CLINVAR_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.clinvar')"
+ESP6500_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.esp6500')"
 
 REGIONS_FILE_PATH="$(echo "$1" | jq -r ".config_data.resources.regions_file_path")"
 
@@ -37,16 +35,17 @@ done
 
 # echo "${BQSR_FLAGS[@]}"
 
-mkdir -p $OUTPUT_DIR_PATH/log
-RUNTIME_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/runtime.log"
-MONITORING_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/monitoring.log"
-MONITORING_STREAM_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/.monitoring.stream"
+mkdir -p "$OUTPUT_DIR_PATH/log"
+WORKFLOW_RUNTIME_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.runtime.log"
+WORKFLOW_CONSOLE_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.console.log"
+WORKFLOW_CONSOLE_STREAM_FILE_PATH="$OUTPUT_DIR_PATH/log/.workflow.console.stream"
 
-WORKFLOW_STATUS_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.status"
-WORKFLOW_PROGRESS_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.progress"
+WORKFLOW_STATUS_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.status.log"
+WORKFLOW_PROGRESS_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.progress.log"
 
+WORKFLOW_ERROR_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.error.log"
 
-init_workflow_status_file() {
+init_workflow_status_log_file() {
     local status_file="$1"
 
     local steps=(
@@ -55,7 +54,7 @@ init_workflow_status_file() {
         "Recalibrate base quality"
         "Call variants"
         "Annotate variants"
-        "Generade reports"
+        "Generate reports"
     )
 
     : > "$status_file"
@@ -67,7 +66,7 @@ init_workflow_status_file() {
     done
 }
 
-init_workflow_progress_file() {
+init_workflow_progress_log_file() {
     local progress_file="$1"
     local initial_title="${2:-Initializing workflow...}"
 
@@ -75,7 +74,7 @@ init_workflow_progress_file() {
     printf "%s\n" "$initial_title" > "$progress_file"
 }
 
-update_workflow_status_file() {
+update_workflow_status_log_file() {
     local status_file="$1"
     local step_name="$2"
     local new_status="$3"
@@ -103,22 +102,18 @@ GVCF_COMBINE_FLAGS=()
 
 # echo "$REFERENCE_GENOME_FILE_PATH"
 
-# echo "$OMNI2_5_1000G_FILE_PATH"
 # echo "$DBNSFP_FILE_PATH"
 # echo "$DBSNP_138_FILE_PATH"
-# echo "$PHASE1_1000G_INDELS_FILE_PATH"
-# echo "$PHASE3_1000G_V4_20130502_FILE_PATH"
+# echo "$PHASE3_1000G_FILE_PATH"
 # echo "$CLINVAR_FILE_PATH"
-# echo "$ESP6500SI_V2_SSA137_FILE_PATH"
+# echo "$ESP6500_FILE_PATH"
 
 # echo "$REGIONS_FILE_PATH"
 
-# echo "$BQSR_FLAGS"
-
 call_variants_script() {
-    init_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH"
+    init_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH"
     
-    init_workflow_progress_file "$WORKFLOW_PROGRESS_FILE_PATH"
+    init_workflow_progress_log_file "$WORKFLOW_PROGRESS_LOG_FILE_PATH"
     #====================================================================================================#
     #                                     SECONDARY DATA ANALYSIS                                        #
     #====================================================================================================#
@@ -132,7 +127,7 @@ call_variants_script() {
         )
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Map and align" "RUNNING"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Map and align" "RUNNING"
 
     while read -r sample; do
         # Extract sample metadata for the workflow
@@ -142,39 +137,32 @@ call_variants_script() {
         sample_read2=$(echo "$sample" | jq -r ".read2")
 
         # Mapping and alignment
-        logger INFO $RUNTIME_LOG_FILE_PATH "Map and align ${green_color}$sample_id${reset} reads to reference genome"
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Map and align ${green_color}$sample_id${reset} reads to reference genome"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        map_and_align_command="
-            bwa mem -t ${THREADS} \
-            -R \"@RG\tID:${sample_id}\tLB:lib1\tPL:${sample_platform}\tPU:unit1\tSM:${sample_id}\" \
-            \"${REFERENCE_GENOME_FILE_PATH}\" \
-            \"${sample_read1}\" \
-            \"${sample_read2}\" | \
-            samtools sort -@ 8 -o \"${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam\"
-        "
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" bash -c "
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Map and align ${green_color}$sample_id${reset} reads to reference genome"
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Map and align ${green_color}$sample_id${reset} reads to reference genome"
+        
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" bash -c "
                 bwa mem -t ${THREADS} \
                     -R \"@RG\tID:${sample_id}\tLB:lib1\tPL:${sample_platform}\tPU:unit1\tSM:${sample_id}\" \
                     \"${REFERENCE_GENOME_FILE_PATH}\" \
                     \"${sample_read1}\" \
                     \"${sample_read2}\" | \
-                samtools sort -@ 8 -o \"${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam\"
+                samtools sort -@ ${THREADS} -o \"${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam\"
             "
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Map and align" "DONE"
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Mark duplicates" "RUNNING"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Map and align" "DONE"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Mark duplicates" "RUNNING"
 
     while read -r sample; do
         # Extract sample metadata for the workflow
         sample_id=$(echo "$sample" | jq -r ".id")
 
         # Mark duplicate reads
-        logger INFO $RUNTIME_LOG_FILE_PATH "Mark duplicate reads in ${green_color}$sample_id${reset} BAM file"
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Mark duplicate reads in ${green_color}$sample_id${reset} BAM file"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Mark duplicate reads in ${green_color}$sample_id${reset} BAM file"
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Mark duplicate reads in ${green_color}$sample_id${reset} BAM file"
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
             gatk MarkDuplicates \
                 -I "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.bam" \
                 -O "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam" \
@@ -182,8 +170,8 @@ call_variants_script() {
 
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Mark duplicates" "DONE"
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Recalibrate base quality" "RUNNING"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Mark duplicates" "DONE"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Recalibrate base quality" "RUNNING"
 
     while read -r sample; do
         # Extract sample metadata for the workflow
@@ -191,46 +179,50 @@ call_variants_script() {
 
         # Recalibrate base quality and apply BQSR
         if [ ${#BQSR_FLAGS[@]} -eq 0 ]; then
-            logger WARNING $RUNTIME_LOG_FILE_PATH "Skip recalibrate base quality for ${green_color}$sample_id${reset} (no BQSR known sites provided)"
+            logger WARNING $WORKFLOW_CONSOLE_LOG_FILE_PATH "Skip recalibrate base quality for ${green_color}$sample_id${reset} (no BQSR known sites provided)"
             cp "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam" \
-                "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam"
+                "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.bam"
         else
-            logger INFO $RUNTIME_LOG_FILE_PATH "Recalibrate base quality for ${green_color}$sample_id${reset}"
-            append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Recalibrate base quality for ${green_color}$sample_id${reset}"
-            : > "$MONITORING_STREAM_LOG_FILE_PATH"
-            /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+            : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+            logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Recalibrate base quality for ${green_color}$sample_id${reset}"
+            append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Recalibrate base quality for ${green_color}$sample_id${reset}"
+            /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
                 gatk BaseRecalibrator \
                     -I ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam \
                     -R ${REFERENCE_GENOME_FILE_PATH} \
                     ${BQSR_FLAGS[@]} \
                     -O ${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.recal_data.table
 
-            logger INFO $RUNTIME_LOG_FILE_PATH "Apply BQSR to ${green_color}$sample_id${reset}"
-            append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Apply BQSR to ${green_color}$sample_id${reset}"
-            : > "$MONITORING_STREAM_LOG_FILE_PATH"
-            /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+            : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+            logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Apply BQSR to ${green_color}$sample_id${reset}"
+            append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Apply BQSR to ${green_color}$sample_id${reset}"
+            /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
                 gatk ApplyBQSR \
                     -I "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.bam" \
                     -R "${REFERENCE_GENOME_FILE_PATH}" \
                     --bqsr-recal-file "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.recal_data.table" \
                     -O "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam"
+            cp "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam" \
+                "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.bam"
+
+            samtools index "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.bam"
         fi
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Recalibrate base quality" "DONE"
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Call variants" "RUNNING"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Recalibrate base quality" "DONE"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Call variants" "RUNNING"
 
     while read -r sample; do
         # Extract sample metadata for the workflow
         sample_id=$(echo "$sample" | jq -r ".id")
 
         # Call variants
-        logger INFO $RUNTIME_LOG_FILE_PATH "Call variants (GVCF) for ${green_color}$sample_id${reset}"
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Call variants (GVCF) for ${green_color}$sample_id${reset}"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Call variants (GVCF) for ${green_color}$sample_id${reset}"
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Call variants (GVCF) for ${green_color}$sample_id${reset}"
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
             gatk HaplotypeCaller \
-                -I "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.sorted.marked.recal.bam" \
+                -I "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.bam" \
                 -R "${REFERENCE_GENOME_FILE_PATH}" \
                 -O "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.g.vcf" \
                 --native-pair-hmm-threads ${THREADS} \
@@ -276,26 +268,26 @@ call_variants_script() {
                 --verbosity INFO
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
 
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Call variants" "DONE"
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Annotate variants" "RUNNING"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Call variants" "DONE"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Annotate variants" "RUNNING"
     
     sample_ids=$(echo "$INPUT_SAMPLE_LIST" | jq -r '.[].id' | paste -sd ", " -)
 
     # Combining GVCF files
-    logger INFO $RUNTIME_LOG_FILE_PATH "Combining GVCF files for samples: ${green_color}${sample_ids}${reset}" 
-    append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Combining GVCF files for samples: ${green_color}${sample_ids}${reset}" 
-    : > "$MONITORING_STREAM_LOG_FILE_PATH"
-    /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+    : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+    logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Combining GVCF files for samples: ${green_color}${sample_ids}${reset}" 
+    append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Combining GVCF files for samples: ${green_color}${sample_ids}${reset}" 
+    /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
         gatk CombineGVCFs \
             -R "${REFERENCE_GENOME_FILE_PATH}" \
             "${GVCF_COMBINE_FLAGS[@]}" \
             -O "${OUTPUT_DIR_PATH}/cohort.g.vcf"
 
     # Genotype combined GVCF
-    logger INFO $RUNTIME_LOG_FILE_PATH "Genotype combined GVCF for samples: ${green_color}${sample_ids}${reset}"
-    append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Genotype combined GVCF for samples: ${green_color}${sample_ids}${reset}"
-    : > "$MONITORING_STREAM_LOG_FILE_PATH"
-    /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+    : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+    logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Genotype combined GVCF for samples: ${green_color}${sample_ids}${reset}"
+    append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Genotype combined GVCF for samples: ${green_color}${sample_ids}${reset}"
+    /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
         gatk GenotypeGVCFs \
             -R "${REFERENCE_GENOME_FILE_PATH}" \
             -V "${OUTPUT_DIR_PATH}/cohort.g.vcf" \
@@ -321,10 +313,10 @@ call_variants_script() {
             --verbosity INFO
 
     # Filter variants
-    logger INFO $RUNTIME_LOG_FILE_PATH "Filter variants for samples: ${green_color}${sample_ids}${reset}"
-    append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Filter variants for samples: ${green_color}${sample_ids}${reset}"
-    : > "$MONITORING_STREAM_LOG_FILE_PATH"
-    /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+    : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+    logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Filter variants for samples: ${green_color}${sample_ids}${reset}"
+    append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Filter variants for samples: ${green_color}${sample_ids}${reset}"
+    /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
         gatk VariantFiltration \
             -R "${REFERENCE_GENOME_FILE_PATH}" \
             -V "${OUTPUT_DIR_PATH}/cohort.vcf" \
@@ -335,10 +327,10 @@ call_variants_script() {
             -O "${OUTPUT_DIR_PATH}/cohort.filtered.vcf"
 
     # Normalize combined VCF
-    logger INFO $RUNTIME_LOG_FILE_PATH "Normalizing combined VCF for samples: ${green_color}${sample_ids}${reset}"
-    append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Normalizing combined VCF for samples: ${green_color}${sample_ids}${reset}"
-    : > "$MONITORING_STREAM_LOG_FILE_PATH"
-    /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+    : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+    logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Normalizing combined VCF for samples: ${green_color}${sample_ids}${reset}"
+    append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Normalizing combined VCF for samples: ${green_color}${sample_ids}${reset}"
+    /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
         bcftools norm -Ov -m-any \
             --multi-overlaps . \
             "${OUTPUT_DIR_PATH}/cohort.filtered.vcf" \
@@ -352,80 +344,80 @@ call_variants_script() {
     sample_ids=$(echo "$INPUT_SAMPLE_LIST" | jq -r '.[].id' | paste -sd ", " -)
 
     # Annotate variants with genomic information
-    logger INFO $RUNTIME_LOG_FILE_PATH "Annotate variants with genomic information for samples: ${green_color}${sample_ids}${reset}"
-    append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Annotate variants with genomic information for samples: ${green_color}${sample_ids}${reset}"
-    : > "$MONITORING_STREAM_LOG_FILE_PATH"
-    /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+    : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+    logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Annotate variants with genomic information for samples: ${green_color}${sample_ids}${reset}"
+    append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Annotate variants with genomic information for samples: ${green_color}${sample_ids}${reset}"
+    /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
         snpEff -Xmx${MAX_MEMORY_GB}g -noStats -v GRCh37.p13 \
             "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.vcf" \
             > "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_001.vcf"
 
     # Annotate variants with variant type
-    logger INFO $RUNTIME_LOG_FILE_PATH "Annotate variants with variant type for samples: ${green_color}${sample_ids}${reset}"
-    append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Annotate variants with variant type for samples: ${green_color}${sample_ids}${reset}"
-    : > "$MONITORING_STREAM_LOG_FILE_PATH"
-    /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+    : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+    logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Annotate variants with variant type for samples: ${green_color}${sample_ids}${reset}"
+    append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Annotate variants with variant type for samples: ${green_color}${sample_ids}${reset}"
+    /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
         SnpSift -Xmx${MAX_MEMORY_GB}g varType \
             "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_001.vcf" \
             > "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_002.vcf"
 
     # Annotate variants with ClinVar database
     if [ -f "$CLINVAR_FILE_PATH" ]; then
-        logger INFO $RUNTIME_LOG_FILE_PATH "Annotate variants with ClinVar database for samples: ${green_color}${sample_ids}${reset}"  
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Annotate variants with ClinVar database for samples: ${green_color}${sample_ids}${reset}"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Annotate variants with ClinVar database for samples: ${green_color}${sample_ids}${reset}"  
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Annotate variants with ClinVar database for samples: ${green_color}${sample_ids}${reset}"
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
             SnpSift -Xmx${MAX_MEMORY_GB}g annotate \
                 -noId -name CLINVAR_ \
                 "${CLINVAR_FILE_PATH}" \
                 "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_002.vcf" \
                 > "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_003.vcf"
     else
-        logger WARNING $RUNTIME_LOG_FILE_PATH "Skip variants annotation with ClinVar database (ClinVar database file not provided)"
+        logger WARNING $WORKFLOW_CONSOLE_LOG_FILE_PATH "Skip variants annotation with ClinVar database (ClinVar database file not provided)"
         cp "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_002.vcf" \
             "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_003.vcf"
     fi
 
     # Annotate variants with 1000G phase3 database
-    if [ -f "$PHASE3_1000G_V4_20130502_FILE_PATH" ]; then
-        logger INFO $RUNTIME_LOG_FILE_PATH "Annotate variants with 1000G phase3 database for samples: ${green_color}${sample_ids}${reset}"
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Annotate variants with 1000G phase3 database for samples: ${green_color}${sample_ids}${reset}"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+    if [ -f "$PHASE3_1000G_FILE_PATH" ]; then
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Annotate variants with 1000G phase3 database for samples: ${green_color}${sample_ids}${reset}"
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Annotate variants with 1000G phase3 database for samples: ${green_color}${sample_ids}${reset}"
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
             SnpSift -Xmx${MAX_MEMORY_GB}g annotate \
                 -noId -name p3_1000G_ \
-                "${PHASE3_1000G_V4_20130502_FILE_PATH}" \
+                "${PHASE3_1000G_FILE_PATH}" \
                 "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_003.vcf"  \
                 > "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_004.vcf"
     else
-        logger WARNING $RUNTIME_LOG_FILE_PATH "Skip variants annotation with 1000G phase3 database (1000G phase3 database file not provided)"
+        logger WARNING $WORKFLOW_CONSOLE_LOG_FILE_PATH "Skip variants annotation with 1000G phase3 database (1000G phase3 database file not provided)"
         cp "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_003.vcf" \
             "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_004.vcf"
     fi
 
     # Annotate variants with ESP6500 database
-    if [ -f "$ESP6500SI_V2_SSA137_FILE_PATH" ]; then
-        logger INFO $RUNTIME_LOG_FILE_PATH "Annotate variants with ESP6500 database for samples: ${green_color}${sample_ids}${reset}"
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Annotate variants with ESP6500 database for samples: ${green_color}${sample_ids}${reset}"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+    if [ -f "$ESP6500_FILE_PATH" ]; then
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Annotate variants with ESP6500 database for samples: ${green_color}${sample_ids}${reset}"
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Annotate variants with ESP6500 database for samples: ${green_color}${sample_ids}${reset}"
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
             SnpSift -Xmx${MAX_MEMORY_GB}g annotate \
                 -noId -name ESP6500_ \
-                "${ESP6500SI_V2_SSA137_FILE_PATH}" \
+                "${ESP6500_FILE_PATH}" \
                 "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_004.vcf"  \
                 > "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_005.vcf"
     else
-        logger WARNING $RUNTIME_LOG_FILE_PATH "Skip variants annotation with ESP6500 database (ESP6500 database file not provided)"
+        logger WARNING $WORKFLOW_CONSOLE_LOG_FILE_PATH "Skip variants annotation with ESP6500 database (ESP6500 database file not provided)"
         cp "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_004.vcf" \
             "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_005.vcf"
     fi
 
     # Annotate variants with dbSNP 138
     if [ -f "$DBSNP_138_FILE_PATH" ]; then
-        logger INFO $RUNTIME_LOG_FILE_PATH "Annotate variants with dbSNP 138 database for samples: ${green_color}${sample_ids}${reset}"
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Annotate variants with dbSNP 138 database for samples: ${green_color}${sample_ids}${reset}"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Annotate variants with dbSNP 138 database for samples: ${green_color}${sample_ids}${reset}"
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Annotate variants with dbSNP 138 database for samples: ${green_color}${sample_ids}${reset}"
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
             SnpSift -Xmx${MAX_MEMORY_GB}g annotate \
                 -noId -info dbSNP138_ID,dbSNPBuildID \
                 -id \
@@ -433,36 +425,35 @@ call_variants_script() {
                 "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_005.vcf" \
                 > "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_006.vcf"
     else
-        logger WARNING $RUNTIME_LOG_FILE_PATH "Skip variants annotation with dbSNP 138 database (dbSNP 138 database file not provided)"
+        logger WARNING $WORKFLOW_CONSOLE_LOG_FILE_PATH "Skip variants annotation with dbSNP 138 database (dbSNP 138 database file not provided)"
         cp "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_005.vcf" \
             "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_006.vcf"
     fi
 
     # Annotate variants with dbNSFP database
     if [ -f "$DBNSFP_FILE_PATH" ]; then
-        logger INFO $RUNTIME_LOG_FILE_PATH "Annotate variants with dbNSFP database for samples: ${green_color}${sample_ids}${reset}"   
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Annotate variants with dbNSFP database for samples: ${green_color}${sample_ids}${reset}"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Annotate variants with dbNSFP database for samples: ${green_color}${sample_ids}${reset}"   
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Annotate variants with dbNSFP database for samples: ${green_color}${sample_ids}${reset}"
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
             SnpSift -Xmx${MAX_MEMORY_GB}g dbnsfp -v -f '' -n \
                 -db "${DBNSFP_FILE_PATH}" \
                 "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_006.vcf" \
                 > "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_007.vcf"
     else
-        logger WARNING $RUNTIME_LOG_FILE_PATH "Skip variants annotation with dbNSFP database (dbNSFP database file not provided)"
+        logger WARNING $WORKFLOW_CONSOLE_LOG_FILE_PATH "Skip variants annotation with dbNSFP database (dbNSFP database file not provided)"
         cp "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_006.vcf" \
             "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_007.vcf"
     fi
 
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Annotate variants" "DONE"
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Generade reports" "RUNNING"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Annotate variants" "DONE"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Generate reports" "RUNNING"
     while read -r sample; do
         sample_id=$(echo "$sample" | jq -r ".id")
-
-        logger INFO $RUNTIME_LOG_FILE_PATH "Extract variants for ${green_color}$sample_id${reset}"
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Extract variants for ${green_color}$sample_id${reset}"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Extract variants for ${green_color}$sample_id${reset}"
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Extract variants for ${green_color}$sample_id${reset}"
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
             gatk SelectVariants \
                 -V "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.annotated_temp_007.vcf" \
                 -R "${REFERENCE_GENOME_FILE_PATH}" \
@@ -470,23 +461,24 @@ call_variants_script() {
                 --exclude-non-variants \
                 -O "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf"
 
-        logger INFO $RUNTIME_LOG_FILE_PATH "Generate SNP and Indel variants XLSX report for ${green_color}$sample_id${reset}"
-        append_workflow_progress_step "$WORKFLOW_PROGRESS_FILE_PATH" "Generate SNP and Indel variants XLSX report for ${green_color}$sample_id${reset}"
-        : > "$MONITORING_STREAM_LOG_FILE_PATH"
-        /usr/bin/time -v -a -o "${RUNTIME_LOG_FILE_PATH}" \
+        : > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
+        logger INFO $WORKFLOW_CONSOLE_LOG_FILE_PATH "Generate SNP and Indel variants XLSX report for ${green_color}$sample_id${reset}"
+        append_workflow_progress_step "$WORKFLOW_PROGRESS_LOG_FILE_PATH" "Generate SNP and Indel variants XLSX report for ${green_color}$sample_id${reset}"
+        /usr/bin/time -v -a -o "${WORKFLOW_RUNTIME_LOG_FILE_PATH}" \
             python3 "${SCRIPT_DIR_PATH}/../python/generate_snp_and_indel_variants_xlsx_report.py" \
                 -I "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.final.vcf" \
                 -O "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.snp_and_indel_variants.xlsx"
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
-    update_workflow_status_file "$WORKFLOW_STATUS_FILE_PATH" "Generade reports" "DONE"
+    update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Generate reports" "DONE"
 
-    rm -f "$MONITORING_STREAM_LOG_FILE_PATH"
+    rm -f "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
 }
 
 run_command_with_monitoring \
     "call_variants_script" \
     "CALL VARIANTS WORKFLOW" \
-    "$MONITORING_LOG_FILE_PATH" \
-    "$MONITORING_STREAM_LOG_FILE_PATH" \
-    "$WORKFLOW_STATUS_FILE_PATH" \
-    "$WORKFLOW_PROGRESS_FILE_PATH"
+    "$WORKFLOW_CONSOLE_LOG_FILE_PATH" \
+    "$WORKFLOW_CONSOLE_STREAM_FILE_PATH" \
+    "$WORKFLOW_STATUS_LOG_FILE_PATH" \
+    "$WORKFLOW_PROGRESS_LOG_FILE_PATH" \
+    "$WORKFLOW_ERROR_LOG_FILE_PATH"
