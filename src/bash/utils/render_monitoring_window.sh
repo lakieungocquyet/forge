@@ -56,7 +56,7 @@ render_workflow_status_frame() {
     local inner_width=$((cols - 4))
     local visible_slots=$((WORKFLOW_STATUS_FRAME_TOTAL_LINES - 2))
     # --------------------------------------------------
-    mapfile -t status_lines < "$workflow_status_file"
+    mapfile -t status_lines < "$workflow_status_log_file"
     local total=${#status_lines[@]}
 
     local top_ellipsis=false
@@ -159,7 +159,7 @@ render_current_progress_frame() {
     for ((i=0; i<right; i++)); do printf "─"; done
     printf "╮${RESET}"
     # --------------------------------------------------
-    current_progress=$(tail -n 1 "$workflow_progress_file")
+    current_progress=$(tail -n 1 "$workflow_progress_log_file")
 
     printf -v full_line "[%c] Running %b" \
         "${spin:$s:1}" \
@@ -184,7 +184,7 @@ render_monitoring_frame() {
     local MONITORING_FRAME_TOTAL_LINES=$(( $rows - $WORKFLOW_TITLE_TOTAL_LINES - $WORKFLOW_STATUS_FRAME_TOTAL_LINES - $CURRENT_PROGRESS_FRAME_TOTAL_LINES ))
     local MONITORING_CONTENT_TOTAL_LINES=$(( $MONITORING_FRAME_TOTAL_LINES - 2 ))
     # --------------------------------------------------
-    local title=" MONITORING "
+    local title=" WORKFLOW CONSOLE "
     local title_len=${#title}
     local remaining=$((cols - title_len - 2))
     local left=4
@@ -198,7 +198,7 @@ render_monitoring_frame() {
     # --------------------------------------------------
     
     mapfile -t lines < <(
-        tail -n "$MONITORING_CONTENT_TOTAL_LINES" "$monitoring_stream_file" \
+        tail -n "$MONITORING_CONTENT_TOTAL_LINES" "$workflow_console_stream_file" \
         | sed -E 's/\x1B\[[0-9;]*[mK]//g' \
         | expand -t 4 \
         | tr -d '\r' \
@@ -232,9 +232,9 @@ render_monitoring_frame() {
 
 render_monitoring_window() {
     workflow_tilte="$1"
-    monitoring_stream_file="$2"
-    workflow_status_file="$3"
-    workflow_progress_file="$4"
+    workflow_console_stream_file="$2"
+    workflow_status_log_file="$3"
+    workflow_progress_log_file="$4"
 
     spin='|/-\'
     s=0
@@ -255,7 +255,7 @@ render_monitoring_window() {
     resized=true
     trap 'resized=true' WINCH # Listen resize in subprocess
     
-    trap 'tput rmcup; tput cnorm; exit 0' TERM
+    trap 'tput rmcup; tput cnorm; exit 0' TERM INT
 
     tput smcup
     tput clear
