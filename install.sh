@@ -25,10 +25,24 @@ echo "# <<< added by forge installer <<<" >> ~/.bashrc
 source ~/.bashrc
 BLOCK
 
-pixi global install -e forge -c conda-forge -c bioconda \
-    fastp=* bwa=* samtools=* gatk4=* bcftools=* snpeff=* snpsift=* t1k=* seqkit=* optitype=* delly=* dicey=* tracy=* \
-    jq=* python=* \
+pixi global install -e forge_external_tools -c conda-forge -c bioconda \
+    fastp=* bwa=* samtools=* gatk4=* bcftools=* snpeff=* snpsift=* t1k=* seqkit=* optitype=* delly=* dicey=* tracy=* cnvkit=*\
+    "openjdk>=21" \
+    jq=* 
+    
+pixi global install -e forge_python -c conda-forge -c bioconda \
+    python=* \
     pyyaml=* pandas=* xlsxwriter=* seaborn=* cyvcf2=*
+
+pixi global install -e forge_r -c conda-forge -c bioconda \
+    r-base=*
+
+Rscript -e '
+    if (!require("BiocManager", quietly = TRUE))
+        install.packages("BiocManager", repos="https://cloud.r-project.org")
+    BiocManager::install("DNAcopy")
+'
+Rscript -e 'install.packages(c("ggplot2","scales","gtable","argparse"), repos="https://cloud.r-project.org")'
 
 echo "# >>> added by forge installer >>>" >> ~/.bashrc
 echo "export PATH=\"$SCRIPT_DIR_PATH:\$PATH\"" >> ~/.bashrc
