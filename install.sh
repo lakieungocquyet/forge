@@ -26,7 +26,7 @@ source ~/.bashrc
 BLOCK
 
 pixi global install -e forge_external_tools -c conda-forge -c bioconda \
-    fastp=* bwa=* samtools=* gatk4=* bcftools=* snpeff=* snpsift=* t1k=* seqkit=* optitype=* delly=* dicey=* tracy=* cnvkit=*\
+    fastp=* bwa=* samtools=* gatk4=* bcftools=* snpeff=* snpsift=* t1k=* seqkit=* optitype=* delly=* dicey=* tracy=* cnvkit=* mosdepth=* \
     "openjdk>=21" \
     jq=* 
     
