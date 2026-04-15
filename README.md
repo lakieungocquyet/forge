@@ -176,7 +176,7 @@ Optional arguments:
 
 # Dependencies
 
-This tool relies on multiple third-party tools and Python libraries.
+This tool relies on multiple third-party tools, Python libraries and R libraries
 
 ## External tools
 - `bwa` -  [Github](https://github.com/lh3/bwa) | [Website](https://bio-bwa.sourceforge.net/)
@@ -195,3 +195,7 @@ This tool relies on multiple third-party tools and Python libraries.
 - `xlsxwriter`
 - `seaborn`
 - `cyvcf2`
+
+## R libraries
+
+- `ggplot2`
