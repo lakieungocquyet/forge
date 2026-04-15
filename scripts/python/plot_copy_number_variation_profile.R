@@ -95,7 +95,7 @@ for(chrname in unique(cnr_table$chromosome)) {
     }
 
     p = p + ylab("Copy number ratio (log2)") + xlab(chrname)
-    p = p + scale_x_continuous(labels=comma, breaks = scales::pretty_breaks(n=20))
+    p = p + scale_x_continuous(labels=comma, breaks = scales::pretty_breaks(n=30))
 
     p = p + scale_y_continuous(labels=comma, breaks = scales::pretty_breaks(n=10))
     if (nrow(cns_by_chr)) { 
@@ -137,7 +137,7 @@ for(chrname in unique(cnr_table$chromosome)) {
         plot = p, 
         file=file.path(arguments$O, paste0("plot.", chrname, ".pdf")), 
         width=24, 
-        height=12
+        height=6
     )
     print(warnings())
 }
