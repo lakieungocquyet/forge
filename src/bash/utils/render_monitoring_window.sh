@@ -16,29 +16,6 @@ reset="\e[0m"
 # anchor_row=$(get_cursor_row)
 # echo $anchor_row
 
-# cleanup() {
-#     trap - INT TERM EXIT
-#     tput cnorm
-#     tput rmcup 2>/dev/null
-#     echo -e "\n[!] Exit process!"
-#     exit 0
-# }
-
-# cleanup_suspend() {
-#     tput cnorm
-#     tput rmcup 2>/dev/null
-# }
-
-# resume() {
-#     tput smcup
-#     tput clear 
-#     tput civis
-#     tput sc
-# }
-
-# trap 'cleanup_suspend; kill -TSTP $$' TSTP # Pause main process
-# trap 'resume' CONT # Resume main process
-# trap cleanup INT TERM # End main process
 # ----------------------------------------------------------------------------------------------------
 
 render_workflow_status_title() {
@@ -178,7 +155,7 @@ render_current_progress_frame() {
 
 # ----------------------------------------------------------------------------------------------------
 
-render_monitoring_frame() {
+render_workflow_console_frame() {
     local cols=$1
     local inner_width=$((cols - 4))
     local MONITORING_FRAME_TOTAL_LINES=$(( $rows - $WORKFLOW_TITLE_TOTAL_LINES - $WORKFLOW_STATUS_FRAME_TOTAL_LINES - $CURRENT_PROGRESS_FRAME_TOTAL_LINES ))
@@ -255,7 +232,7 @@ render_monitoring_window() {
     resized=true
     trap 'resized=true' WINCH # Listen resize in subprocess
     
-    trap 'tput rmcup; tput cnorm; exit 0' TERM INT
+    trap 'tput rmcup; tput cnorm; exit 0' TERM INT # Listen kill and exit in subprocess
 
     tput smcup
     tput clear
@@ -266,9 +243,6 @@ render_monitoring_window() {
         if $resized; then
             rows=$(tput lines)
             cols=$(tput cols)
-            WORKFLOW_STATUS_FRAME_TOTAL_LINES=10
-            CURRENT_PROGRESS_FRAME_TOTAL_LINES=3
-            MONITORING_FRAME_TOTAL_LINES=$(( $rows - $WORKFLOW_STATUS_FRAME_TOTAL_LINES - $CURRENT_PROGRESS_FRAME_TOTAL_LINES ))
             tput clear
             resized=false
         fi
@@ -276,10 +250,10 @@ render_monitoring_window() {
         render_workflow_status_title "$cols"
         render_workflow_status_frame "$cols"
         render_current_progress_frame "$cols"
-        render_monitoring_frame "$cols"
+        render_workflow_console_frame "$cols"
 
         s=$(( (s+1) %4 ))
-        sleep 0.5
+        sleep 1
     done
 }
 
