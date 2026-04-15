@@ -111,12 +111,17 @@ GVCF_COMBINE_FLAGS=()
 # echo "$REGIONS_FILE_PATH"
 
 call_variants_script() {
+
+    #====================================================================================================#
+    #                                     SNP AND INDEL VARIANTS                                         #
+    #====================================================================================================#
     init_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH"
     
     init_workflow_progress_log_file "$WORKFLOW_PROGRESS_LOG_FILE_PATH"
-    #====================================================================================================#
-    #                                     SECONDARY DATA ANALYSIS                                        #
-    #====================================================================================================#
+    
+    #==================================================#
+    #              SECONDARY DATA ANALYSIS             #
+    #==================================================#
     while read -r sample; do
         # Extract sample metadata for the workflow
         sample_id=$(echo "$sample" | jq -r ".id")
@@ -336,10 +341,9 @@ call_variants_script() {
             "${OUTPUT_DIR_PATH}/cohort.filtered.vcf" \
             -o "${OUTPUT_DIR_PATH}/cohort.filtered.normalized.vcf"
 
-    #====================================================================================================#
-    #                                     TERTIARY DATA ANALYSIS                                         #
-    #====================================================================================================#
-
+    #==================================================#
+    #             TERTIARY DATA ANALYSIS               #
+    #==================================================#
 
     sample_ids=$(echo "$INPUT_SAMPLE_LIST" | jq -r '.[].id' | paste -sd ", " -)
 
@@ -471,6 +475,10 @@ call_variants_script() {
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
     update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Generate reports" "DONE"
 
+
+    #====================================================================================================#
+    #                                       COPY NUMBER VARIANTS                                         #
+    #====================================================================================================#
     rm -f "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
 }
 
