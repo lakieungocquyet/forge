@@ -35,7 +35,9 @@ pixi global install -e forge_python -c conda-forge -c bioconda \
     pyyaml=* pandas=* xlsxwriter=* seaborn=* cyvcf2=*
 
 pixi global install -e forge_r -c conda-forge -c bioconda \
-    r-base=*
+    r-base=* \
+    jupyterlab=* \
+    r-ggforce=*
 
 Rscript -e '
     if (!require("BiocManager", quietly = TRUE))
@@ -50,4 +52,3 @@ echo "# <<< added by forge installer <<<" >> ~/.bashrc
 
 chmod +x $SCRIPT_DIR_PATH/forge
 source ~/.bashrc
-
