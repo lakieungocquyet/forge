@@ -1,4 +1,9 @@
 # set -Eeuo pipefail
+SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
+
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/setup_logging.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/render_monitoring_window.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/run_command_with_monitoring.sh"
 
 cyan_color="\e[36m"  # cyan
 green_color="\e[32m"   # green
@@ -6,14 +11,13 @@ yellow_color="\e[33m" # yellow
 red_color="\e[31m"   # red
 reset="\e[0m"
 
-SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
-
-source "$SCRIPT_DIR_PATH/../../src/bash/utils/setup_logging.sh"
-source "$SCRIPT_DIR_PATH/../../src/bash/utils/render_monitoring_window.sh"
-source "$SCRIPT_DIR_PATH/../../src/bash/utils/run_command_with_monitoring.sh"
+UTC_TIME=$(date -u +"%Y-%m-%d_%Hh-%Mm-%Ss_UTC")
+WORKFLOW_TITLE="workflow_call-variants"
 
 INPUT_SAMPLE_LIST=$(echo "$1" | jq -r ".input_data.sample")
-OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".output_dir_path")
+OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".output_dir_path")/"${UTC_TIME}_${WORKFLOW_TITLE}"
+
+mkdir -p "$OUTPUT_DIR_PATH"
 
 REFERENCE_GENOME_FILE_PATH="$(echo "$1" | jq -r ".config_data.resources.reference_genome_file_path")"
 
@@ -119,6 +123,32 @@ GVCF_COMBINE_FLAGS=()
 # echo "$ESP6500_FILE_PATH"
 
 # echo "$REGIONS_FILE_PATH"
+
+jq -n \
+    --arg workflow_title "call-variants" \
+    --arg UTC_time "$(date -u +"%Y-%m-%d %H:%M:%S")" \
+    --arg local_time "$(date +"%Y-%m-%d %H:%M:%S")" \
+    --arg UUIDv4 "$(uuidgen -r)" \
+    --argjson input_sample_list "$INPUT_SAMPLE_LIST" \
+    --arg reference_genome_file "$REFERENCE_GENOME_FILE_PATH" \
+    --arg regions_file "$REGIONS_FILE_PATH" \
+    --argjson BQSR_known_sites_list "$(echo "$1" | jq ".config_data.resources.bqsr_known_sites")" \
+    --argjson standard_annotation_resources "$(echo "$1" | jq '.config_data.resources.standard_annotation_resources_dict')" \
+    --argjson compute "$(echo "$1" | jq ".config_data.compute")" \
+    '{
+        workflow_title: $workflow_title,
+        UTC_time: $UTC_time,
+        local_time: $local_time,
+        UUIDv4: $UUIDv4,
+        workflow_arguments: {
+            input_sample_list: $input_sample_list,
+            reference_genome_file: $reference_genome_file,
+            regions_file: $regions_file,
+            BQSR_known_sites_list: $BQSR_known_sites_list,
+            standard_annotation_resources: $standard_annotation_resources,
+            compute: $compute,
+        }
+    }' > "$OUTPUT_DIR_PATH/workflow.metadata.json"
 
 call_variants_script() {
 
@@ -484,7 +514,6 @@ call_variants_script() {
                 -O "${OUTPUT_DIR_PATH}/${sample_id}/${sample_id}.snp_and_indel_variants.xlsx"
     done < <(echo "$INPUT_SAMPLE_LIST" | jq -c '.[]')
     update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Generate reports" "DONE"
-
 
     #====================================================================================================#
     #                                       COPY NUMBER VARIANTS                                         #
