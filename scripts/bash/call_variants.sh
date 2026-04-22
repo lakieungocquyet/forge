@@ -4,6 +4,13 @@ SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
 source "$SCRIPT_DIR_PATH/../../src/bash/utils/setup_logging.sh"
 source "$SCRIPT_DIR_PATH/../../src/bash/utils/render_monitoring_window.sh"
 source "$SCRIPT_DIR_PATH/../../src/bash/utils/run_command_with_monitoring.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/init_workflow_status_log_file.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/init_workflow_progress_log_file.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/append_workflow_progress_step.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/update_workflow_status_log_file.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/init_workflow_log_files.sh"
+
+CONTEXT_JSON="$1"
 
 cyan_color="\e[36m"  # cyan
 green_color="\e[32m"   # green
@@ -14,23 +21,21 @@ reset="\e[0m"
 UTC_TIME=$(date -u +"%Y-%m-%d_%Hh-%Mm-%Ss_UTC")
 WORKFLOW_TITLE="workflow_call-variants"
 
-INPUT_SAMPLE_LIST=$(echo "$1" | jq -r ".input_data.sample")
-OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".output_dir_path")/"${UTC_TIME}_${WORKFLOW_TITLE}"
+INPUT_SAMPLE_LIST=$(echo "$CONTEXT_JSON" | jq -r ".input_data.sample")
+OUTPUT_DIR_PATH=$(echo "$CONTEXT_JSON" | jq -r ".output_dir_path")/"${UTC_TIME}_${WORKFLOW_TITLE}"
 
-mkdir -p "$OUTPUT_DIR_PATH"
+REFERENCE_GENOME_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r ".config_data.resources.reference_genome_file_path")"
 
-REFERENCE_GENOME_FILE_PATH="$(echo "$1" | jq -r ".config_data.resources.reference_genome_file_path")"
+DBNSFP_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.dbnsfp')"
+DBSNP_138_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.dbsnp_138')"
+PHASE3_1000G_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.phase3_1000g')"
+CLINVAR_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.clinvar')"
+ESP6500_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.esp6500')"
 
-DBNSFP_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.dbnsfp')"
-DBSNP_138_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.dbsnp_138')"
-PHASE3_1000G_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.phase3_1000g')"
-CLINVAR_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.clinvar')"
-ESP6500_FILE_PATH="$(echo "$1" | jq -r '.config_data.resources.standard_annotation_resources_dict.esp6500')"
-
-REGIONS_FILE_PATH="$(echo "$1" | jq -r ".config_data.resources.regions_file_path")"
+REGIONS_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r ".config_data.resources.regions_file_path")"
 
 mapfile -t BQSR_KNOWN_SITES < <(
-    echo "$1" | jq -r ".config_data.resources.bqsr_known_sites[]?" 2>/dev/null
+    echo "$CONTEXT_JSON" | jq -r ".config_data.resources.bqsr_known_sites[]?" 2>/dev/null
 )
 BQSR_FLAGS=()
 for site in "${BQSR_KNOWN_SITES[@]}"; do
@@ -39,78 +44,9 @@ done
 
 # echo "${BQSR_FLAGS[@]}"
 
-mkdir -p "$OUTPUT_DIR_PATH/log"
-WORKFLOW_RUNTIME_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.runtime.log"
-WORKFLOW_CONSOLE_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.console.log"
-WORKFLOW_CONSOLE_STREAM_FILE_PATH="$OUTPUT_DIR_PATH/log/.workflow.console.stream"
-
-WORKFLOW_STATUS_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.status.log"
-WORKFLOW_PROGRESS_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.progress.log"
-
-WORKFLOW_ERROR_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.error.log"
-
-: > "$WORKFLOW_RUNTIME_LOG_FILE_PATH"
-: > "$WORKFLOW_CONSOLE_LOG_FILE_PATH"
-: > "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
-
-: > "$WORKFLOW_STATUS_LOG_FILE_PATH"
-: > "$WORKFLOW_PROGRESS_LOG_FILE_PATH"
-
-: > "$WORKFLOW_ERROR_LOG_FILE_PATH"
-
-
-init_workflow_status_log_file() {
-    local status_file="$1"
-
-    local steps=(
-        "Map and align"
-        "Mark duplicates"
-        "Recalibrate base quality"
-        "Call variants"
-        "Annotate variants"
-        "Generate reports"
-    )
-
-    : > "$status_file"
-
-    local total=${#steps[@]}
-    for i in "${!steps[@]}"; do
-        printf "[%d/%d]|%s|PENDING\n" \
-            "$((i+1))" "$total" "${steps[$i]}" >> "$status_file"
-    done
-}
-
-init_workflow_progress_log_file() {
-    local progress_file="$1"
-    local initial_title="${2:-Initializing workflow...}"
-
-    mkdir -p "$(dirname "$progress_file")"
-    printf "%s\n" "$initial_title" > "$progress_file"
-}
-
-update_workflow_status_log_file() {
-    local status_file="$1"
-    local step_name="$2"
-    local new_status="$3"
-
-    awk -F'|' -v step="$step_name" -v status="$new_status" '
-        BEGIN { OFS="|" }
-        $2 == step { $3 = status }
-        { print }
-    ' "$status_file" > "${status_file}.tmp"
-
-    mv "${status_file}.tmp" "$status_file"
-}
-
-append_workflow_progress_step() {
-    local progress_file="$1"
-    local title="$2"
-    printf "%s\n" "$title" >> "$progress_file"
-}
-
-THREADS=$(echo "$1" | jq -r ".config_data.compute.threads")
-MIN_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.min_memory_gb")
-MAX_MEMORY_GB=$(echo "$1" | jq -r ".config_data.compute.max_memory_gb")
+THREADS=$(echo "$CONTEXT_JSON" | jq -r ".config_data.compute.threads")
+MIN_MEMORY_GB=$(echo "$CONTEXT_JSON" | jq -r ".config_data.compute.min_memory_gb")
+MAX_MEMORY_GB=$(echo "$CONTEXT_JSON" | jq -r ".config_data.compute.max_memory_gb")
 
 GVCF_COMBINE_FLAGS=()
 
@@ -124,38 +60,39 @@ GVCF_COMBINE_FLAGS=()
 
 # echo "$REGIONS_FILE_PATH"
 
-jq -n \
-    --arg workflow_title "call-variants" \
-    --arg UTC_time "$(date -u +"%Y-%m-%d %H:%M:%S")" \
-    --arg local_time "$(date +"%Y-%m-%d %H:%M:%S")" \
-    --arg UUIDv4 "$(uuidgen -r)" \
-    --argjson input_sample_list "$INPUT_SAMPLE_LIST" \
-    --arg reference_genome_file "$REFERENCE_GENOME_FILE_PATH" \
-    --arg regions_file "$REGIONS_FILE_PATH" \
-    --argjson BQSR_known_sites_list "$(echo "$1" | jq ".config_data.resources.bqsr_known_sites")" \
-    --argjson standard_annotation_resources "$(echo "$1" | jq '.config_data.resources.standard_annotation_resources_dict')" \
-    --argjson compute "$(echo "$1" | jq ".config_data.compute")" \
-    '{
-        workflow_title: $workflow_title,
-        UTC_time: $UTC_time,
-        local_time: $local_time,
-        UUIDv4: $UUIDv4,
-        workflow_arguments: {
-            input_sample_list: $input_sample_list,
-            reference_genome_file: $reference_genome_file,
-            regions_file: $regions_file,
-            BQSR_known_sites_list: $BQSR_known_sites_list,
-            standard_annotation_resources: $standard_annotation_resources,
-            compute: $compute,
-        }
-    }' > "$OUTPUT_DIR_PATH/workflow.metadata.json"
 
 call_variants_script() {
 
     #====================================================================================================#
     #                                     SNP AND INDEL VARIANTS                                         #
     #====================================================================================================#
-    init_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH"
+
+    mkdir -p "$OUTPUT_DIR_PATH"
+
+    jq -n \
+        --arg workflow_title "call-variants" \
+        --arg UTC_time "$(date -u +"%Y-%m-%d %H:%M:%S")" \
+        --arg local_time "$(date +"%Y-%m-%d %H:%M:%S")" \
+        --arg UUIDv4 "$(uuidgen -r)" \
+        --argjson context "$CONTEXT_JSON" \
+        '{
+            workflow_title: $workflow_title,
+            UTC_time: $UTC_time,
+            local_time: $local_time,
+            UUIDv4: $UUIDv4,
+            context: $context
+        }' > "$OUTPUT_DIR_PATH/workflow.metadata.json"
+
+    call_variants_steps=(
+        "Map and align"
+        "Mark duplicates"
+        "Recalibrate base quality"
+        "Call variants"
+        "Annotate variants"
+        "Generate reports"
+    )
+
+    init_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "${call_variants_steps[@]}"
     
     init_workflow_progress_log_file "$WORKFLOW_PROGRESS_LOG_FILE_PATH"
     
@@ -520,6 +457,8 @@ call_variants_script() {
     #====================================================================================================#
     rm -f "$WORKFLOW_CONSOLE_STREAM_FILE_PATH"
 }
+
+init_workflow_log_files "$OUTPUT_DIR_PATH"
 
 run_command_with_monitoring \
     "call_variants_script" \

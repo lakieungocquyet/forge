@@ -1,6 +1,6 @@
 forge workflow call-variants \
     -I /home/lknq/GitHub/forge/example/input.yaml \
-    -O /home/lknq/result \
+    -O /home/lknq/GitHub/forge/results \
     -R ~/resources/generated/reference_genome_hg19/processed/hg19.p13.plusMT.no_alt_analysis_set.fa \
     -r ~/GitHub/forge/resources/hg19/regions_hg19/s07604624_hg19/s07604624_covered.bed \
     --bqsr-known-sites \
