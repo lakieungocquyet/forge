@@ -67,6 +67,9 @@ call_variants_script() {
     #                                     SNP AND INDEL VARIANTS                                         #
     #====================================================================================================#
 
+    #==================================================#
+    #              WORKFLOW INITIALIZATION             #
+    #==================================================#
     mkdir -p "$OUTPUT_DIR_PATH"
 
     jq -n \
@@ -93,7 +96,7 @@ call_variants_script() {
     )
 
     init_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "${call_variants_steps[@]}"
-    
+
     init_workflow_progress_log_file "$WORKFLOW_PROGRESS_LOG_FILE_PATH"
     
     #==================================================#

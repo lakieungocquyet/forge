@@ -1,8 +1,16 @@
+# set -Eeuo pipefail
 SCRIPT_DIR_PATH="$(dirname "$(realpath $0)")"
 
 source "$SCRIPT_DIR_PATH/../../src/bash/utils/setup_logging.sh"
 source "$SCRIPT_DIR_PATH/../../src/bash/utils/render_monitoring_window.sh"
 source "$SCRIPT_DIR_PATH/../../src/bash/utils/run_command_with_monitoring.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/init_workflow_status_log_file.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/init_workflow_progress_log_file.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/append_workflow_progress_step.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/update_workflow_status_log_file.sh"
+source "$SCRIPT_DIR_PATH/../../src/bash/utils/init_workflow_log_files.sh"
+
+CONTEXT_JSON="$1"
 
 cyan_color="\e[36m"  # cyan
 green_color="\e[32m"   # green
@@ -10,72 +18,47 @@ yellow_color="\e[33m" # yellow
 red_color="\e[31m"   # red
 reset="\e[0m"
 
-INPUT_SAMPLE_LIST=$(echo "$1" | jq -r ".input_data.sample")
-OUTPUT_DIR_PATH=$(echo "$1" | jq -r ".output_dir_path")
+UTC_TIME=$(date -u +"%Y-%m-%d_%Hh-%Mm-%Ss_UTC")
+WORKFLOW_TITLE="workflow_identify-hla-alleles"
 
-
-mkdir -p "$OUTPUT_DIR_PATH/log"
-WORKFLOW_RUNTIME_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.runtime.log"
-WORKFLOW_CONSOLE_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.console.log"
-WORKFLOW_CONSOLE_STREAM_FILE_PATH="$OUTPUT_DIR_PATH/log/.workflow.console.stream"
-
-WORKFLOW_STATUS_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.status.log"
-WORKFLOW_PROGRESS_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.progress.log"
-
-WORKFLOW_ERROR_LOG_FILE_PATH="$OUTPUT_DIR_PATH/log/workflow.error.log"
-
-init_workflow_status_log_file() {
-    local status_file="$1"
-
-    local steps=(
-        "Identify HLA alleles"
-    )
-
-    : > "$status_file"
-
-    local total=${#steps[@]}
-    for i in "${!steps[@]}"; do
-        printf "[%d/%d]|%s|PENDING\n" \
-            "$((i+1))" "$total" "${steps[$i]}" >> "$status_file"
-    done
-}
-
-init_workflow_progress_log_file() {
-    local progress_file="$1"
-    local initial_title="${2:-Initializing workflow...}"
-
-    mkdir -p "$(dirname "$progress_file")"
-    printf "%s\n" "$initial_title" > "$progress_file"
-}
-
-update_workflow_status_log_file() {
-    local status_file="$1"
-    local step_name="$2"
-    local new_status="$3"
-
-    awk -F'|' -v step="$step_name" -v status="$new_status" '
-        BEGIN { OFS="|" }
-        $2 == step { $3 = status }
-        { print }
-    ' "$status_file" > "${status_file}.tmp"
-
-    mv "${status_file}.tmp" "$status_file"
-}
-
-append_workflow_progress_step() {
-    local progress_file="$1"
-    local title="$2"
-    printf "%s\n" "$title" >> "$progress_file"
-}
-
+INPUT_SAMPLE_LIST=$(echo "$CONTEXT_JSON" | jq -r ".input_data.sample")
+OUTPUT_DIR_PATH=$(echo "$CONTEXT_JSON" | jq -r ".output_dir_path")/"${UTC_TIME}_${WORKFLOW_TITLE}"
 
 REFERENCE_HLA_DNA_FILE_PATH="$SCRIPT_DIR_PATH/../../resources/hla/hla_dna_seq.fa"
 REFERENCE_HLA_RNA_FILE_PATH="$SCRIPT_DIR_PATH/../../resources/hla/hla_rna_seq.fa"
 
 identify_hla_alleles_script() {
-    init_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH"
+
+    #==================================================#
+    #              WORKFLOW INITIALIZATION             #
+    #==================================================#
+    mkdir -p "$OUTPUT_DIR_PATH"
+
+    jq -n \
+        --arg workflow_title "identify-hla-alleles" \
+        --arg UTC_time "$(date -u +"%Y-%m-%d %H:%M:%S")" \
+        --arg local_time "$(date +"%Y-%m-%d %H:%M:%S")" \
+        --arg UUIDv4 "$(uuidgen -r)" \
+        --argjson context "$CONTEXT_JSON" \
+        '{
+            workflow_title: $workflow_title,
+            UTC_time: $UTC_time,
+            local_time: $local_time,
+            UUIDv4: $UUIDv4,
+            context: $context
+        }' > "$OUTPUT_DIR_PATH/workflow.metadata.json"
+
+    identify_hla_alleles_steps=(
+        "Identify HLA alleles"
+    )
+
+    init_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "${identify_hla_alleles_steps[@]}"
+    
     init_workflow_progress_log_file "$WORKFLOW_PROGRESS_LOG_FILE_PATH"
 
+    #==================================================#
+    #                     HLA TYPING                   #
+    #==================================================#
     update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Identify HLA alleles" "RUNNING"
 
     if [[ ! -f "$REFERENCE_HLA_DNA_FILE_PATH" || ! -f "$REFERENCE_HLA_RNA_FILE_PATH" ]]; then
@@ -115,6 +98,8 @@ identify_hla_alleles_script() {
 
     update_workflow_status_log_file "$WORKFLOW_STATUS_LOG_FILE_PATH" "Identify HLA alleles" "DONE"
 }
+
+init_workflow_log_files "$OUTPUT_DIR_PATH"
 
 run_command_with_monitoring \
     "identify_hla_alleles_script" \
