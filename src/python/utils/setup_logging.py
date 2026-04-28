@@ -5,8 +5,7 @@ import os
 
 def setup_logging(
     logger_name: str,
-    log_file_path: str = None,
-    log_to_file: bool = True
+    log_file_path: str = None
     ):
     logger = logging.getLogger(f"{logger_name}")
     logger.setLevel(logging.INFO)
@@ -59,7 +58,7 @@ def setup_logging(
 
 
     # FILE 
-    if log_to_file and log_file_path:
+    if log_file_path:
         os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
         file_handler = logging.FileHandler(f"{log_file_path}", mode="a", encoding="utf-8")
         file_handler.setFormatter(SimpleFormatter(use_color=False))
