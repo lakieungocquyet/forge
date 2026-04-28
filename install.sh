@@ -32,7 +32,7 @@ pixi global install -e forge_external_tools -c conda-forge -c bioconda \
     
 pixi global install -e forge_python -c conda-forge -c bioconda \
     python=* \
-    pyyaml=* pandas=* xlsxwriter=* seaborn=* cyvcf2=*
+    pyyaml=* pandas=* xlsxwriter=* seaborn=* cyvcf2=* ruamel.yaml=*
 
 pixi global install -e forge_r -c conda-forge -c bioconda \
     r-base=* \
