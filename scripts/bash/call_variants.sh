@@ -18,24 +18,21 @@ yellow_color="\e[33m" # yellow
 red_color="\e[31m"   # red
 reset="\e[0m"
 
-UTC_TIME=$(date -u +"%Y-%m-%d_%Hh-%Mm-%Ss_UTC")
-WORKFLOW_TITLE="workflow_call-variants"
-
 INPUT_SAMPLE_LIST=$(echo "$CONTEXT_JSON" | jq -r ".input_data.sample")
-OUTPUT_DIR_PATH=$(echo "$CONTEXT_JSON" | jq -r ".output_dir_path")/"${UTC_TIME}_${WORKFLOW_TITLE}"
+OUTPUT_DIR_PATH=$(echo "$CONTEXT_JSON" | jq -r ".output_dir_path")
 
-REFERENCE_GENOME_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r ".config_data.resources.reference_genome_file_path")"
+REFERENCE_GENOME_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r ".resources.reference_genome_file_path")"
 
-DBNSFP_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.dbnsfp')"
-DBSNP_138_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.dbsnp_138')"
-PHASE3_1000G_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.phase3_1000g')"
-CLINVAR_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.clinvar')"
-ESP6500_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.config_data.resources.standard_annotation_resources_dict.esp6500')"
+DBNSFP_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.resources.standard_annotation_resources_dict.dbnsfp')"
+DBSNP_138_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.resources.standard_annotation_resources_dict.dbsnp_138')"
+PHASE3_1000G_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.resources.standard_annotation_resources_dict.phase3_1000g')"
+CLINVAR_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.resources.standard_annotation_resources_dict.clinvar')"
+ESP6500_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r '.resources.standard_annotation_resources_dict.esp6500')"
 
-REGIONS_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r ".config_data.resources.regions_file_path")"
+REGIONS_FILE_PATH="$(echo "$CONTEXT_JSON" | jq -r ".resources.regions_file_path")"
 
 mapfile -t BQSR_KNOWN_SITES < <(
-    echo "$CONTEXT_JSON" | jq -r ".config_data.resources.bqsr_known_sites[]?" 2>/dev/null
+    echo "$CONTEXT_JSON" | jq -r ".resources.bqsr_known_sites[]?" 2>/dev/null
 )
 BQSR_FLAGS=()
 for site in "${BQSR_KNOWN_SITES[@]}"; do
@@ -44,9 +41,9 @@ done
 
 # echo "${BQSR_FLAGS[@]}"
 
-THREADS=$(echo "$CONTEXT_JSON" | jq -r ".config_data.compute.threads")
-MIN_MEMORY_GB=$(echo "$CONTEXT_JSON" | jq -r ".config_data.compute.min_memory_gb")
-MAX_MEMORY_GB=$(echo "$CONTEXT_JSON" | jq -r ".config_data.compute.max_memory_gb")
+THREADS=$(echo "$CONTEXT_JSON" | jq -r ".compute.threads")
+MIN_MEMORY_GB=$(echo "$CONTEXT_JSON" | jq -r ".compute.min_memory_gb")
+MAX_MEMORY_GB=$(echo "$CONTEXT_JSON" | jq -r ".compute.max_memory_gb")
 
 GVCF_COMBINE_FLAGS=()
 

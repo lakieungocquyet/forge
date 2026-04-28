@@ -18,11 +18,8 @@ yellow_color="\e[33m" # yellow
 red_color="\e[31m"   # red
 reset="\e[0m"
 
-UTC_TIME=$(date -u +"%Y-%m-%d_%Hh-%Mm-%Ss_UTC")
-WORKFLOW_TITLE="workflow_identify-hla-alleles"
-
 INPUT_SAMPLE_LIST=$(echo "$CONTEXT_JSON" | jq -r ".input_data.sample")
-OUTPUT_DIR_PATH=$(echo "$CONTEXT_JSON" | jq -r ".output_dir_path")/"${UTC_TIME}_${WORKFLOW_TITLE}"
+OUTPUT_DIR_PATH=$(echo "$CONTEXT_JSON" | jq -r ".output_dir_path")
 
 REFERENCE_HLA_DNA_FILE_PATH="$SCRIPT_DIR_PATH/../../resources/hla/hla_dna_seq.fa"
 REFERENCE_HLA_RNA_FILE_PATH="$SCRIPT_DIR_PATH/../../resources/hla/hla_rna_seq.fa"
