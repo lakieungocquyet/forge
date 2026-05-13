@@ -283,7 +283,7 @@ def main(argument_vector):
             #                 Optional arguments
             # --------------------------------------------------
             standard_annotation_resources_dict = {}
-            compute ={}
+            compute = {}
             NORMAL_OPTIONS = {
                 "-I", "--input",
                 "-O", "--output",
