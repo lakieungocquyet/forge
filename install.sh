@@ -36,6 +36,7 @@ pixi global install -e forge_python -c conda-forge -c bioconda \
 
 pixi global install -e forge_r -c conda-forge -c bioconda \
     r-base=* \
+    r-cowplot=* \
     jupyterlab=* \
     r-ggforce=*
 
