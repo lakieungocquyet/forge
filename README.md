@@ -130,7 +130,7 @@ forge --help
 
 The following commands are part of `forge`
 
-## `forge workflow`
+## `forge`
 
 | Command | Description |
 |---------|-------------|
@@ -138,40 +138,54 @@ The following commands are part of `forge`
 | `identify-hla-alleles` | Run HLA typing pipeline |
 | `--help` | Show help message for `forge workflow` and exit |
 
-* `forge workflow call-variants`
+* `forge call-variants`
 ```
-usage: forge workflow call-variants [-h] -I <YAML> -O <directory> -R <FASTA> [-r <BED>] [--bqsr-known-sites <VCF> [<VCF> ...]] [--standard-annotation-resources <KEY=PATH> [<KEY=PATH> ...]] [-t <INT>] [--min-memory <GB>] [--max-memory <GB>]
+About: Run variant calling pipeline
+Usage:
 
-options:
-  -h, --help                                                   show this help message and exit
+       forge call-variants [arguments]
 
-Required arguments:
-  -I <YAML>, --input <YAML>                                    Path to the YAML configuration file (e.g., run.yaml)
-  -O <directory>, --output <directory>                         Path to the directory where results will be stored (e.g., ~/result/)
-  -R <FASTA>, --reference-genome <FASTA>                       Reference genome FASTA file (e.g. hg19.fa)
+Arguments:
 
-Optional arguments:
-  -r <BED>, --regions <BED>                                    Genomic regions to process. Accepts BED file
-  --bqsr-known-sites <VCF> [<VCF> ...]                         List of known sites for Base Quality Score Recalibration (e.g., dbsnp.vcf.gz mills.vcf.gz)
-  --standard-annotation-resources <KEY=PATH> [<KEY=PATH> ...]  Grouped annotation resources.
-  -t <INT>, --threads <INT>                                    Number of threads to use (default: 4)
-  --min-memory <GB>                                            Minimum memory in GB (default: 8)
-  --max-memory <GB>                                            Maximum memory in GB (default: 16)
+  Required arguments:
+    -I, --input <YAML>                          Path to the YAML configuration file (e.g., run.yaml)
+    -O, --output <DIR>                          Path to the directory where results will be stored (e.g., ~/result/)
+    -R, --reference-genome <FASTA>              Path to the reference genome FASTA file (e.g. hg19.fa)
+
+  Optional arguments:
+    -r, --regions <BED>                         Path to genomic regions to process. Accepts BED file
+    --bqsr-known-sites <LIST> [<VCF> ...]       List of known sites for Base Quality Score Recalibration (e.g., dbsnp.vcf.gz mills.vcf.gz)
+    --standard-annotation-resource [arguments]  Standard databases used for variant annotation
+
+      Arguments: --dbsnp138 <VCF>               dbSNP build 138 variant database
+                 --clinvar <VCF>                ClinVar clinical significance annotations
+                 --esp6500 <VCF>                NHLBI Exome Sequencing Project population variants
+                 --1000g-phase3 <VCF>           1000 Genomes Project Phase 3 population frequencies
+                 --dbnsfp <TXT>                 dbNSFP functional prediction database
+
+    -t, --threads <INT>                         Number of threads to use (default: 4)
+    --min-memory <INT>                          Minimum memory in GB (default: 8)
+    --max-memory <INT>                          Maximum memory in GB (default: 16)
+
+  Others:
+    -h, --help                                  Show this help message and exit
 ```
 
-* `forge workflow identify-hla-alleles`
+* `forge identify-hla-alleles`
 ```
-usage: forge workflow identify-hla-alleles [-h] -I <YAML> -O <directory> [-t <INT>]
+About: Run HLA typing pipeline
+Usage:
 
-options:
-  -h, --help                            show this help message and exit
+       forge identify-hla-alleles [arguments]
 
-Required arguments:
-  -I <YAML>, --input <YAML>             Path to the YAML configuration file (e.g., run.yaml)
-  -O <directory>, --output <directory>  Path to the directory where results will be stored (e.g., ~/result/)
+Arguments:
 
-Optional arguments:
-  -t <INT>, --threads <INT>             Number of threads to use (default: 4)
+  Required arguments:
+    -I, --input <YAML>  Path to the YAML configuration file (e.g., run.yaml)
+    -O, --output <DIR>  Path to the directory where results will be stored (e.g., ~/result/)
+
+  Others:
+    -h, --help          Show this help message and exit
 ```
 
 # Dependencies
