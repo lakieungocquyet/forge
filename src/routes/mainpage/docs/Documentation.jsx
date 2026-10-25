@@ -14,7 +14,7 @@ function Documentation () {
             <div 
                 className="documentation"
                 style={{
-                        height: "100vh",
+                        minHeight: "100vh",
                         display: "grid",
                         gridTemplateColumns: "300px 1fr",
                         gridTemplateAreas: '"left right"',
@@ -66,16 +66,15 @@ function Documentation () {
                     <span className="sidebar_section_title">Introduction</span>
                     <button className="sidebar_button" onClick={() => navigate("/docs/about-us")}>About us</button>
                     <button className="sidebar_button" onClick={() => navigate("/docs/what-is-forge")} >What is FORGE?</button>
-                    <button className="sidebar_button">Key Features</button>
                     <Divider style={{marginTop: "10px", marginBottom: "10px"}}/>
                     <span className="sidebar_section_title">License</span>
                     <button className="sidebar_button" onClick={() => navigate("/docs/license")}>GPL-3.0 license</button>
                     <button className="sidebar_button">Third-party Packages</button>
                     <Divider style={{marginTop: "10px", marginBottom: "10px"}}/>
                     <span className="sidebar_section_title">Support</span>
-                    <button className="sidebar_button">FAQ</button>
-                    <button className="sidebar_button">Contact us</button>
-                    <button className="sidebar_button">Report an Issue</button>
+                    <button className="sidebar_button" onClick={() => navigate("/docs/faq")}>FAQ</button>
+                    <button className="sidebar_button" onClick={() => navigate("/docs/contact-us")}>Contact us</button>
+                    <button className="sidebar_button" onClick={() => navigate("/docs/report-an-issue")}>Report an Issue</button>
                 </div>
                 <div 
                     className="content"

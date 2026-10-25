@@ -12,6 +12,9 @@ import Documentation from '../routes/mainpage/docs/Documentation.jsx'
 import AboutUs from '../routes/mainpage/docs/AboutUs.jsx'
 import WhatIsFORGE from '../routes/mainpage/docs/WhatIsFORGE.jsx'
 import License from '../routes/mainpage/docs/License.jsx'
+import FAQ from '../routes/mainpage/docs/FAQ.jsx'
+import ContactUs from '../routes/mainpage/docs/ContactUs.jsx'
+import ReportAnIssue from '../routes/mainpage/docs/ReportAnIssue.jsx'
 import Installation from '../routes/mainpage/installation/Installation.jsx'
 import Analytics from '../components/analytics/Analytics.jsx'
 import '../styles/App.scss'
@@ -32,6 +35,9 @@ function App() {
 							<Route path="about-us" element={<AboutUs />}/>
 							<Route path="license" element={<License />}/>
 							<Route path="what-is-forge" element={<WhatIsFORGE />}/>
+							<Route path="faq" element={<FAQ />}/>
+							<Route path="contact-us" element={<ContactUs />}/>
+							<Route path="report-an-issue" element={<ReportAnIssue />}/>
 						</Route>
 
 						<Route path="installation" element={<Installation />}/>
