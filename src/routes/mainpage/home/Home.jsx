@@ -30,14 +30,14 @@ function Home() {
                         >
                             Explore Now
                         </button>
-                        <button 
+                        {/* <button 
                             className="install_button"
                             onClick={() => {
                                 navigate("/installation")
                             }}
                         >
                             Install
-                        </button>
+                        </button> */}
                     </div>
                 </div>
                 <div className="home_design">
