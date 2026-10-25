@@ -10,14 +10,17 @@ import SamtoolsSort from '../routes/mainpage/tools/SamtoolsSort.jsx'
 import VCFtoolkit_convert from "../routes/mainpage/tools/VCFtoolkit_convert.jsx";
 import Documentation from '../routes/mainpage/docs/Documentation.jsx'
 import AboutUs from '../routes/mainpage/docs/AboutUs.jsx'
+import WhatIsFORGE from '../routes/mainpage/docs/WhatIsFORGE.jsx'
 import License from '../routes/mainpage/docs/License.jsx'
 import Installation from '../routes/mainpage/installation/Installation.jsx'
+import Analytics from '../components/analytics/Analytics.jsx'
 import '../styles/App.scss'
 function App() {
 	return (
 		<div className="App">
 			<div className="app_routes">
 				<ScrollToTop />
+				<Analytics />
 				<Routes>
 					<Route path="/" element={<Main />}>
 						<Route index element={<Home />} />
@@ -28,6 +31,7 @@ function App() {
 							<Route index element={<AboutUs />} />
 							<Route path="about-us" element={<AboutUs />}/>
 							<Route path="license" element={<License />}/>
+							<Route path="what-is-forge" element={<WhatIsFORGE />}/>
 						</Route>
 
 						<Route path="installation" element={<Installation />}/>
