@@ -7,10 +7,9 @@ function Analytics() {
     const location = useLocation();
 
     useEffect(() => {
-        console.log('Route changed to:', location.pathname, location.hash);
-        console.log('Is gtag exists?', typeof window.gtag);
+        // console.log('Route changed to:', location.pathname, location.hash);
+        // console.log('Is gtag exists?', typeof window.gtag);
         if (typeof window.gtag == 'function') {
-
             // Ping Google Analytics manually
             window.gtag('event', 'page_view', {
                 page_location: window.location.href,
