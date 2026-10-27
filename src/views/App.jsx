@@ -5,6 +5,8 @@ import Home from '../routes/mainpage/home/Home.jsx'
 
 import Tools from '../routes/mainpage/tools/Tools.jsx'
 import BioPostgreSQL from '../routes/mainpage/tools/BioPostgreSQL.jsx'
+
+
 import VCFtoolkit from '../routes/mainpage/tools/VCFtoolkit.jsx'
 import VCFtoolkitConvert from "../routes/mainpage/tools/VCFtoolkitConvert.jsx";
 
@@ -13,6 +15,9 @@ import SamtoolsSort from '../routes/mainpage/tools/SamtoolsSort.jsx'
 import SamtoolsView from '../routes/mainpage/tools/SamtoolsView.jsx'
 import SamtoolsIdxstats from '../routes/mainpage/tools/SamtoolsIdxstats.jsx'
 import SamtoolsFaidx from '../routes/mainpage/tools/SamtoolsFaidx.jsx'
+
+import Bcftools from "../routes/mainpage/tools/Bcftools.jsx";
+import BcftoolsStats from "../routes/mainpage/tools/BcftoolsStats.jsx";
 
 import Documentation from '../routes/mainpage/docs/Documentation.jsx'
 import AboutUs from '../routes/mainpage/docs/AboutUs.jsx'
@@ -62,6 +67,11 @@ function App() {
 							<Route path="samtools-view" element={<SamtoolsView />} />
 							<Route path="samtools-idxstats" element={<SamtoolsIdxstats />} />
 							<Route path="samtools-faidx" element={<SamtoolsFaidx />} />
+						</Route>
+
+						<Route path="tools/bcftools" element={<Bcftools />}> 
+							<Route index element={<BcftoolsStats />} />
+							<Route path="bcftools-stats" element={<BcftoolsStats />} />
 						</Route>
 					</Route>
 				</Routes>

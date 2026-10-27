@@ -259,7 +259,7 @@ function Tools () {
                         </p>
                     </button>
                     <button 
-                        onClick={() => {navigate("/tools/vcftoolkit")}} 
+                        onClick={() => {navigate("/tools/bcftools")}} 
                         onMouseEnter={(e) => {
                             e.currentTarget.style.transform = "scale(1.05)";
                             e.currentTarget.style.cursor = "pointer";
