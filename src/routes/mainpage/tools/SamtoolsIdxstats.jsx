@@ -188,7 +188,7 @@ function SamtoolsIdxstats () {
                                         display: "flex",
                                         alignItems: "center",
                                         boxSizing: 'border-box',
-                                        backgroundColor: "#FFCC9A",
+                                        backgroundColor: "#ffffff",
                                         borderRadius: "5px",
                                         padding: "10px 20px",
                                         fontSize: "13px",
@@ -205,6 +205,7 @@ function SamtoolsIdxstats () {
                                         border: "1px solid #a6a6a6",
                                         borderRadius: "5px",
                                         padding: "10px 20px",
+                                        cursor: "pointer"
                                     }}
                                 >
                                     Choose file
@@ -242,6 +243,7 @@ function SamtoolsIdxstats () {
                                         border: "1px solid #a6a6a6",
                                         borderRadius: "5px",
                                         padding: "10px 20px",
+                                        cursor: "pointer"
                                     }}
                                 >
                                     Change file
@@ -359,7 +361,7 @@ function SamtoolsIdxstats () {
                         description="Upload an indexed BAM/CRAM file to see mapped and unmapped read counts per reference sequence"
                     />
                 )}
-                {loading && <p>Đang xử lý...</p>}
+                {loading && <p>processing...</p>}
             </div>
         </>
     )
