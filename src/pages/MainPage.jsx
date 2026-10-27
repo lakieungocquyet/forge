@@ -279,7 +279,7 @@ function Main () {
                                             e.currentTarget.style.backgroundColor = "#ffffff";
                                         }}
                                         onClick={() => {
-                                            navigate("/docs/blog");
+                                            // navigate("/docs/blog");
                                             closeImmediately();  
                                         }}
                                         style={{
@@ -302,7 +302,16 @@ function Main () {
                                                 fontWeight: "600",
                                             }}
                                         >
-                                            Blog
+                                            Blog{" "}
+                                            <span
+                                                style={{
+                                                    fontSize: "12px",
+                                                    color: "#959595",
+                                                    fontWeight: "500"
+                                                }}
+                                            >
+                                                (Coming soon)
+                                            </span>
                                         </span>
                                         <div 
                                             className="info"
@@ -324,7 +333,7 @@ function Main () {
                                             e.currentTarget.style.backgroundColor = "#ffffff";
                                         }}
                                         onClick={() => {
-                                            navigate("/docs/blog");
+                                            navigate("/docs/contact-us");
                                             closeImmediately();  
                                         }}
                                         style={{

@@ -1,0 +1,19 @@
+export function runSamtools(args, files = [], outputs = []) {
+    return new Promise((resolve, reject) => {
+        // Mỗi lệnh một worker mới => một instance WASM mới
+        const worker = new Worker(
+            new URL('./samtools.worker.js', import.meta.url),
+            { type: 'module' }
+        );
+        worker.onmessage = (e) => { resolve(e.data); worker.terminate(); };
+        worker.onerror = (err) => { reject(err); worker.terminate(); };
+        worker.postMessage({ args, files, outputs });
+    });
+}
+
+export function downloadBlob(data, filename) {
+    const url = URL.createObjectURL(new Blob([data]));
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+}

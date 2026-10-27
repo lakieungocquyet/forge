@@ -1,4 +1,4 @@
-import { useNavigate, Outlet} from 'react-router';
+import { useNavigate, Outlet, useLocation} from 'react-router';
 import { useState, useRef } from "react";
 import Breadcrumb from "../../../components/ui/Breadcrumb"
 import Divider from "../../../components/ui/Divider";
@@ -19,7 +19,18 @@ function Samtools () {
         },
     ];
     const navigate = useNavigate();
-    const [selectedSection, setSelectedSection] = useState("samtools_sort");
+    const { pathname } = useLocation();
+
+    // Biến thường, tính từ URL mỗi lần render (KHÔNG dùng useState)
+    let selectedSection = "samtools_idxstats"; // Khởi tạo trạng thái trang gốc dùng để set style nút
+    if (pathname.includes("samtools-idxstats")) 
+        selectedSection = "samtools_idxstats"; // Dùng để set style nút
+    else if (pathname.includes("samtools-view")) 
+        selectedSection = "samtools_view"; // Dùng để set style nút
+    else if (pathname.includes("samtools-faidx")) 
+        selectedSection = "samtools_faidx"; // Dùng để set style nút
+    else if (pathname.includes("samtools-sort")) 
+        selectedSection = "samtools_sort"; // Dùng để set style nút
     return (
         <div 
             id="samtools"
@@ -68,9 +79,8 @@ function Samtools () {
                     flexWrap: "wrap",
                 }}
             >
-                <button 
+                {/* <button 
                     onClick={() => {
-                        setSelectedSection("samtools_sort");
                         navigate("/tools/samtools/samtools-sort");
                     }} 
                     className="samtools_sort_button"
@@ -124,12 +134,126 @@ function Samtools () {
                     >
                         Samtools sort
                     </p>
-                </button>
+                </button> */}
+
                 <button 
+                    onClick={() => {
+                        navigate("/tools/samtools/samtools-idxstats");
+                    }} 
+                    className="samtools_idxstats_button"
+                    onMouseEnter={(e) => {
+                        if (selectedSection !== "samtools_idxstats") {
+                            e.currentTarget.style.transform = "scale(1.05)";
+                            e.currentTarget.style.cursor = "pointer";
+                        } else {
+                            e.currentTarget.style.cursor = "default";
+                        } 
+                    }}
+                    onMouseLeave={(e) => {
+                        if (selectedSection !== "samtools_idxstats") {
+                            e.currentTarget.style.transform = "scale(1)";
+                        } 
+                    }}
+                    
+                    style={
+                        selectedSection === "samtools_idxstats" ? {
+                            minWidth: "150px",
+                            flex: "0 0 calc((100% - 180px) / 10)",
+                            height: "30px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: "#FF7F50",
+                            border: "none",
+                        } : {
+                            minWidth: "150px",
+                            flex: "0 0 calc((100% - 180px) / 10)",
+                            height: "30px",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #cfcfcf",
+                            transition: "transform 0.15s ease",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            // padding: "5px 10px",
+                        }
+                        
+                    }
+                >
+                    <p 
+                        id="samtools_idxstats_button_title"
+                        style={{
+                            fontSize: "15px",
+                            fontWeight: "500",
+                        }}
+                    >
+                        Samtools idxstats
+                    </p>
+                </button>
+                
+                {/* <button 
+                    onClick={() => {
+                        navigate("/tools/samtools/samtools-faidx");
+                    }} 
+                    className="samtools_sort_button"
+                    onMouseEnter={(e) => {
+                        if (selectedSection !== "samtools_faidx") {
+                            e.currentTarget.style.transform = "scale(1.05)";
+                            e.currentTarget.style.cursor = "pointer";
+                        } else {
+                            e.currentTarget.style.cursor = "default";
+                        } 
+                    }}
+                    onMouseLeave={(e) => {
+                        if (selectedSection !== "samtools_faidx") {
+                            e.currentTarget.style.transform = "scale(1)";
+                        } 
+                    }}
+                    
+                    style={
+                        selectedSection === "samtools_faidx" ? {
+                            minWidth: "150px",
+                            flex: "0 0 calc((100% - 180px) / 10)",
+                            height: "30px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: "#FF7F50",
+                            border: "none",
+                        } : {
+                            minWidth: "150px",
+                            flex: "0 0 calc((100% - 180px) / 10)",
+                            height: "30px",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #cfcfcf",
+                            transition: "transform 0.15s ease",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            // padding: "5px 10px",
+                        }
+                        
+                    }
+                >
+                    <p 
+                        id="samtools_faidx_button_title"
+                        style={{
+                            fontSize: "15px",
+                            fontWeight: "500",
+                        }}
+                    >
+                        Samtools faidx
+                    </p>
+                </button> */}
+                
+                {/* <button 
                     className="samtools_view_button"
                     onClick={() => {
-                        setSelectedSection("samtools_view");
-                        // navigate("/tools/vcftoolkit/vcftoolkit-convert")
+                        navigate("/tools/samtools/samtools-view")
                     }} 
                     onMouseEnter={(e) => {
                         if (selectedSection !== "samtools_view") {
@@ -181,7 +305,7 @@ function Samtools () {
                     >
                         Samtools view
                     </p>
-                </button>
+                </button> */}
             </div>
             <div
                 id="tool_parameters"
@@ -192,8 +316,9 @@ function Samtools () {
                     marginRight: "50px",
                     padding: "25px 50px",
                     boxSizing: "border-box",
-                    backgroundColor: "rgb(253, 253, 253)",
-                    borderTop: "2px solid #FF7F50",
+                    borderRadius: "5px",
+                    // backgroundColor: "rgb(251, 251, 251)",
+                    borderTop: "3px solid #FF7F50",
                 }}
             >
                 <Outlet />

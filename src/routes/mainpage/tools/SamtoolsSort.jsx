@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import Breadcrumb from "../../../components/ui/Breadcrumb";
 import CustomSelect from "../../../components/ui/CustomSelect"
 
-function Samtools_sort () {
+function SamtoolsSort () {
 
     const [file, setFile] = useState(null);
     const inputRef = useRef(null);
@@ -315,4 +315,4 @@ function Samtools_sort () {
         </>
     )
 }
-export default Samtools_sort;
+export default SamtoolsSort;
