@@ -109,7 +109,7 @@ function Main () {
                             onMouseLeave={close}
                         >
                             <span className="dropdown_button_label" >
-                                About
+                                Docs
                             </span>
                         </button>
                     </div>
@@ -465,11 +465,11 @@ function Main () {
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.textDecoration = "none";
                                 }}
-                                onClick={() => {
-                                    navigate("/tools")
-                                }}
                                 style={{
                                     cursor: "pointer",
+                                }}
+                                onClick={() => {
+                                    navigate("/tools")
                                 }}
                             >
                                 Tools
@@ -481,16 +481,62 @@ function Main () {
                             <div 
                                 className="link" 
                                 onClick={() => {
-                                    navigate("/about")
+                                    navigate("/docs/about-us")
                                 }} 
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.textDecoration = "underline";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.textDecoration = "none";
+                                }}
+                                style={{
+                                    cursor: "pointer",
+                                }}
                             >
                                 About us
                             </div>
-                            <Link className="link" to="/docs/license">License</Link>
-                            <Link className="link" to="/docs/about-us">Blog</Link>
-                            <Link className="link" to="/docs/license">Contact</Link>
-                            
-
+                            <div 
+                                className="link" 
+                                onClick={() => {
+                                    navigate("/docs/license")
+                                }} 
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.textDecoration = "underline";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.textDecoration = "none";
+                                }}
+                                style={{
+                                    cursor: "pointer",
+                                }}
+                            >
+                                License
+                            </div>
+                            {/* <div 
+                                className="link" 
+                                onClick={() => {
+                                    navigate("/about")
+                                }} 
+                            >
+                                Blog
+                            </div> */}
+                            <div 
+                                className="link" 
+                                onClick={() => {
+                                    navigate("/docs/contact-us")
+                                }} 
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.textDecoration = "underline";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.textDecoration = "none";
+                                }}
+                                style={{
+                                    cursor: "pointer",
+                                }}
+                            >
+                                Contact
+                            </div>                          
                         </div>
                     </div>
                 </div>
