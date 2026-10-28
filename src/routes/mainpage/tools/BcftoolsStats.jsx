@@ -404,7 +404,6 @@ function BcftoolsStats () {
                             border: "none",
                             borderRadius: 0,
                             cursor: cursor,
-                            boxShadow: "6px 6px 0 #1a3a8f",
                             transition: "all 0.15s ease",
                             gap: "10px",
                             boxShadow: shadow,
