@@ -1,4 +1,4 @@
-export function runBcftools(args, files = [], outputs = []) {
+export function runBcftools(args, files = [], outputs = [], options = {}) {
     return new Promise((resolve, reject) => {
         // Mỗi lệnh một worker mới => một instance WASM mới
         // console.log("New worker")
@@ -8,7 +8,7 @@ export function runBcftools(args, files = [], outputs = []) {
         );
         worker.onmessage = (e) => { resolve(e.data); worker.terminate(); }; 
         worker.onerror = (err) => { reject(err); worker.terminate(); };
-        worker.postMessage({ args, files, outputs });
+        worker.postMessage({ args, files, outputs, forceMode: options.forceMode});
     });
 }
 
