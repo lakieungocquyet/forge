@@ -86,7 +86,7 @@ function SamtoolsIdxstats () {
 
         // Bước 2: idxstats với BAM + index vừa tạo (cùng nằm trong /work)
         const idxFile = new File([r1.results[idxName]], idxName);
-        const r2 = await run(["idxstats", p], [file, idxFile]);
+        const r2 = await run(["idxstats", `{${file.name}}`], [file, idxFile], [], { forceMode: "mount" }); // Dùng "mount" cho idxstats vì đây là tác vụ yêu cầu đọc ít => "mount" ít gây ảnh hưởng tốc độ, tiết kiệm thời gian copy file BAM vào FS
         if (!r2 || r2.code !== 0) return;
 
         setRows(
