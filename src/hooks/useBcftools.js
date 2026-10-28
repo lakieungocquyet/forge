@@ -5,10 +5,10 @@ function useBcftools() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const run = useCallback(async (args, files, outputs) => {
+    const run = useCallback(async (args, files, outputs, options) => {
         setLoading(true); setError(null);
         try {
-            const r = await runBcftools(args, files, outputs);
+            const r = await runBcftools(args, files, outputs, options);
             if (r.code !== 0) setError(r.stderr);
             return r;
         } catch (e) {
