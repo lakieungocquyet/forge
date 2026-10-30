@@ -31,6 +31,8 @@ function Samtools () {
         selectedSection = "samtools_faidx"; // Dùng để set style nút
     else if (pathname.includes("samtools-sort")) 
         selectedSection = "samtools_sort"; // Dùng để set style nút
+    else if (pathname.includes("samtools-bedcov")) 
+        selectedSection = "samtools_bedcov"; // Dùng để set style nút
     return (
         <div 
             id="samtools"
@@ -190,6 +192,63 @@ function Samtools () {
                         }}
                     >
                         Samtools idxstats
+                    </p>
+                </button>
+
+                <button 
+                    onClick={() => {
+                        navigate("/tools/samtools/samtools-bedcov");
+                    }} 
+                    className="samtools_bedcov_button"
+                    onMouseEnter={(e) => {
+                        if (selectedSection !== "samtools_bedcov") {
+                            e.currentTarget.style.transform = "scale(1.05)";
+                            e.currentTarget.style.cursor = "pointer";
+                        } else {
+                            e.currentTarget.style.cursor = "default";
+                        } 
+                    }}
+                    onMouseLeave={(e) => {
+                        if (selectedSection !== "samtools_bedcov") {
+                            e.currentTarget.style.transform = "scale(1)";
+                        } 
+                    }}
+                    
+                    style={
+                        selectedSection === "samtools_bedcov" ? {
+                            minWidth: "150px",
+                            flex: "0 0 calc((100% - 180px) / 10)",
+                            height: "30px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: "#FF7F50",
+                            border: "none",
+                        } : {
+                            minWidth: "150px",
+                            flex: "0 0 calc((100% - 180px) / 10)",
+                            height: "30px",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #cfcfcf",
+                            transition: "transform 0.15s ease",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            // padding: "5px 10px",
+                        }
+                        
+                    }
+                >
+                    <p 
+                        id="samtools_bedcov_button_title"
+                        style={{
+                            fontSize: "15px",
+                            fontWeight: "500",
+                        }}
+                    >
+                        Samtools bedcov
                     </p>
                 </button>
                 

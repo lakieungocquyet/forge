@@ -15,6 +15,7 @@ import SamtoolsSort from '../routes/mainpage/tools/SamtoolsSort.jsx'
 import SamtoolsView from '../routes/mainpage/tools/SamtoolsView.jsx'
 import SamtoolsIdxstats from '../routes/mainpage/tools/SamtoolsIdxstats.jsx'
 import SamtoolsFaidx from '../routes/mainpage/tools/SamtoolsFaidx.jsx'
+import SamtoolsBedcov from "../routes/mainpage/tools/SamtoolsBedcov.jsx";
 
 import Bcftools from "../routes/mainpage/tools/Bcftools.jsx";
 import BcftoolsStats from "../routes/mainpage/tools/BcftoolsStats.jsx";
@@ -67,6 +68,7 @@ function App() {
 							<Route path="samtools-view" element={<SamtoolsView />} />
 							<Route path="samtools-idxstats" element={<SamtoolsIdxstats />} />
 							<Route path="samtools-faidx" element={<SamtoolsFaidx />} />
+							<Route path="samtools-bedcov" element={<SamtoolsBedcov />} />
 						</Route>
 
 						<Route path="tools/bcftools" element={<Bcftools />}> 
