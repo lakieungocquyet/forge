@@ -44,26 +44,40 @@ self.onmessage = async (e) => {
 
         const paths = {};   // tên file -> đường dẫn thật trong FS
         try { mod.FS.mkdir('/work'); } catch { 
-            // /work đã tồn tại, không cần làm gì
+            // /work/ đã tồn tại, không cần làm gì
         }
-        if (inRam.length > 0) console.time('copy-files');
+        try { mod.FS.mkdir('/mount'); } catch { 
+            // /mount/ đã tồn tại, không cần làm gì
+        }
+        try { mod.FS.mkdir('/ram'); } catch { 
+            // /ram/ đã tồn tại, không cần làm gì
+        }
+
+        const copied = new Set();
         for (const f of inRam) {
             try {
+                console.time(`Copy ${f.name} data into RAM`);
                 const buf = new Uint8Array(await f.arrayBuffer());
-                mod.FS.writeFile('/work/' + f.name, buf);
-                paths[f.name] = '/work/' + f.name;
+                mod.FS.writeFile('/ram/' + f.name, buf);
+                copied.add(f.name);
+                console.timeEnd(`Copy ${f.name} data into RAM`);
             } catch (err) {
                 mounted.push(f);   // không đủ RAM -> chuyển sang mount
                 stderr.push(`Fallback to WORKERFS for ${f.name}: ${err.message}`);
+                console.log(`Fallback to WORKERFS for ${f.name}: ${err.message}`)
             }
         }
-        if (inRam.length > 0) console.timeEnd('copy-files');
+        
 
         // Nhóm 2: mount WORKERFS tại /big (đọc theo yêu cầu)
         if (mounted.length > 0) {
-            try { mod.FS.mkdir('/big'); } catch { /* đã tồn tại */ }
-            mod.FS.mount(mod.WORKERFS, { files: mounted }, '/big');
-            for (const f of mounted) paths[f.name] = '/big/' + f.name;
+            mod.FS.mount(mod.WORKERFS, { files: mounted }, '/mount');
+        }
+
+        for (const f of files) {
+            const real = (copied.has(f.name) ? '/ram/' : '/mount/') + f.name;
+            mod.FS.symlink(real, '/work/' + f.name);
+            paths[f.name] = '/work/' + f.name;
         }
 
         const finalArgs = args.map((a) => {
@@ -73,10 +87,10 @@ self.onmessage = async (e) => {
 
         let code = 0;
         try {
-            console.time("samtools");
+            console.time("Running samtools");
             console.log("Start running samtools")
             code = mod.callMain(finalArgs);
-            console.timeEnd("samtools");
+            console.timeEnd("Running samtools");
             console.log(`Done running samtools (exit code: ${code})`)
         } catch (err) {
             code = err?.status ?? 1;

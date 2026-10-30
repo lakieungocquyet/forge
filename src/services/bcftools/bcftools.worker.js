@@ -291,7 +291,13 @@ self.onmessage = async (e) => {
         //   - KHÔNG mount gì cả: /work là thư mục MEMFS thường, ghi được
         // ============================================================
         try { mod.FS.mkdir('/work'); } catch { 
-            // /work đã tồn tại, không cần làm gì
+            // /work/ đã tồn tại, không cần làm gì
+        }
+        try { mod.FS.mkdir('/mount'); } catch { 
+            // /mount/ đã tồn tại, không cần làm gì
+        }
+        try { mod.FS.mkdir('/ram'); } catch { 
+            // /ram/ đã tồn tại, không cần làm gì
         }
 		// ============================================================
 		// BƯỚC 2: copy từng File người dùng chọn vào /work (MEMFS)
@@ -303,24 +309,31 @@ self.onmessage = async (e) => {
 		//   - Đánh đổi: tốn RAM (~2x dung lượng file lúc chép), phải chờ chép trước
 		//   - console.time: đo thời gian chép, xóa khi không cần debug
 		// ============================================================
-        if (inRam.length > 0) console.time('copy-files');
+        const copied = new Set();
         for (const f of inRam) {
             try {
+                console.time(`Copy ${f.name} data into RAM`);
                 const buf = new Uint8Array(await f.arrayBuffer());
-                mod.FS.writeFile('/work/' + f.name, buf);
-                paths[f.name] = '/work/' + f.name;
+                mod.FS.writeFile('/ram/' + f.name, buf);
+                copied.add(f.name);
+                console.timeEnd(`Copy ${f.name} data into RAM`);
             } catch (err) {
                 mounted.push(f);   // không đủ RAM -> chuyển sang mount
                 stderr.push(`Fallback to WORKERFS for ${f.name}: ${err.message}`);
+                console.log(`Fallback to WORKERFS for ${f.name}: ${err.message}`)
             }
         }
-        if (inRam.length > 0) console.timeEnd('copy-files');
+        
 
         // Nhóm 2: mount WORKERFS tại /big (đọc theo yêu cầu)
         if (mounted.length > 0) {
-            try { mod.FS.mkdir('/big'); } catch { /* đã tồn tại */ }
-            mod.FS.mount(mod.WORKERFS, { files: mounted }, '/big');
-            for (const f of mounted) paths[f.name] = '/big/' + f.name;
+            mod.FS.mount(mod.WORKERFS, { files: mounted }, '/mount');
+        }
+
+        for (const f of files) {
+            const real = (copied.has(f.name) ? '/ram/' : '/mount/') + f.name;
+            mod.FS.symlink(real, '/work/' + f.name);
+            paths[f.name] = '/work/' + f.name;
         }
 
         // Cho phép args dùng placeholder {tên file} thay cho đường dẫn cứng (Thay vì phải ghi đầy đủ đường dẫn tới file name trong FS trên args, hỗ trợ truyền mỗi tên file)
@@ -358,10 +371,10 @@ self.onmessage = async (e) => {
 		*/
         let code = 0;
         try {
-            console.time("bcftools");
+            console.time("Running bcftools");
             console.log("Start running bcftools")
             code = mod.callMain(finalArgs);
-            console.timeEnd("bcftools");
+            console.timeEnd("Running bcftools");
             console.log(`Done running bcftools (exit code: ${code})`)
         } catch (err) {
             code = err?.status ?? 1;
