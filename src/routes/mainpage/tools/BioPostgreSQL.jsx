@@ -779,7 +779,6 @@ function BioPostgreSQL() {
                             padding: "none", 
                             display: "flex", 
                             flexDirection: "column", 
-                            gap: "10px",
                             maxWidth: "calc(100vw - 50px * 2 - 250px - 40px - 50px)", 
                             boxSizing: "border-box",
                             gap: "8px"
