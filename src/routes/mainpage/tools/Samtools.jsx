@@ -3,6 +3,21 @@ import { useState, useRef } from "react";
 import Breadcrumb from "../../../components/ui/Breadcrumb"
 import Divider from "../../../components/ui/Divider";
 
+const btnStyle = ({ border = "1px solid #cfcfcf" , backgroundcolor = "#ffffff"} = {}) => ({
+    minWidth: "70px",
+    flex: "0 0 calc((100% - 180px) / 10)",
+    height: "40px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: backgroundcolor,
+    border: border,
+    borderRadius: "5px",
+    fontSize: "15px",
+    fontWeight: "500",
+})
+
 function Samtools () {
     const breadcrumbItems = [
         {
@@ -158,41 +173,10 @@ function Samtools () {
                     }}
                     
                     style={
-                        selectedSection === "samtools_idxstats" ? {
-                            minWidth: "150px",
-                            flex: "0 0 calc((100% - 180px) / 10)",
-                            height: "30px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: "#FF7F50",
-                            border: "none",
-                        } : {
-                            minWidth: "150px",
-                            flex: "0 0 calc((100% - 180px) / 10)",
-                            height: "30px",
-                            backgroundColor: "#ffffff",
-                            border: "1px solid #cfcfcf",
-                            transition: "transform 0.15s ease",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            // padding: "5px 10px",
-                        }
-                        
+                        selectedSection === "samtools_idxstats" ? btnStyle({backgroundcolor: "#FF7F50", border: "none",}) : btnStyle()
                     }
                 >
-                    <p 
-                        id="samtools_idxstats_button_title"
-                        style={{
-                            fontSize: "15px",
-                            fontWeight: "500",
-                        }}
-                    >
-                        Samtools idxstats
-                    </p>
+                    Idxstats
                 </button>
 
                 <button 
@@ -215,41 +199,10 @@ function Samtools () {
                     }}
                     
                     style={
-                        selectedSection === "samtools_bedcov" ? {
-                            minWidth: "150px",
-                            flex: "0 0 calc((100% - 180px) / 10)",
-                            height: "30px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: "#FF7F50",
-                            border: "none",
-                        } : {
-                            minWidth: "150px",
-                            flex: "0 0 calc((100% - 180px) / 10)",
-                            height: "30px",
-                            backgroundColor: "#ffffff",
-                            border: "1px solid #cfcfcf",
-                            transition: "transform 0.15s ease",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            // padding: "5px 10px",
-                        }
-                        
+                        selectedSection === "samtools_bedcov" ? btnStyle({backgroundcolor: "#FF7F50", border: "none",}) : btnStyle()
                     }
                 >
-                    <p 
-                        id="samtools_bedcov_button_title"
-                        style={{
-                            fontSize: "15px",
-                            fontWeight: "500",
-                        }}
-                    >
-                        Samtools bedcov
-                    </p>
+                    Bedcov
                 </button>
                 
                 {/* <button 
