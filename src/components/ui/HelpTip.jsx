@@ -18,6 +18,7 @@ const styles = {
         cursor: "help",
         outline: "none",
         transition: "all 0.15s",
+        padding: 0,
     }),
     bubble: {
         position: "absolute",
@@ -61,7 +62,7 @@ export default function HelpTip({ children }) {
                 onBlur={() => setOpen(false)}
                 onClick={() => setOpen((o) => !o)} // để chạm trên mobile cũng bật/tắt được
             >
-                <svg width="6" height="9" viewBox="0 0 5 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="6" height="9" viewBox="0 0 5 8" fill="none" style={{ flexShrink: 0 }} xmlns="http://www.w3.org/2000/svg">
                     <path d="M3.125 7.5H1.875V6.25H3.125V7.5ZM2.5 0C3.88125 0 5 1.11875 5 2.5C5 4.0625 3.125 4.21875 3.125 5.625H1.875C1.875 3.59375 3.75 3.75 3.75 2.5C3.75 1.8125 3.1875 1.25 2.5 1.25C1.8125 1.25 1.25 1.8125 1.25 2.5H0C2.57482e-07 1.11875 1.11875 2.57478e-07 2.5 0Z" fill={open ? "#ffffff" : "#555555"}/>
                 </svg>
             </button>
