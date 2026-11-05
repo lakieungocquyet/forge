@@ -622,9 +622,9 @@ function SamtoolsBedcov () {
     const [validationError, setValidationError] = useState("");
     const pressed = loading;
 
-    let shadow = "6px 6px 0 #1a3a8f";
+    let shadow = "6px 6px 0 #C85B3C";
     let move = "translate(0, 0)";
-    let bg = "#3b6db4";
+    let bg = "#FF7F50";
     let cursor = "pointer"
 
     if (pressed) {
@@ -635,10 +635,10 @@ function SamtoolsBedcov () {
         cursor = "default"
     } else if (down) {
         // đang giữ chuột: hết bóng
-        shadow = "0 0 0 #1a3a8f";
+        shadow = "0 0 0 #C85B3C";
         move = "translate(6px, 6px)";
     } else if (hover) {
-        shadow = "3px 3px 0 #1a3a8f";
+        shadow = "3px 3px 0 #C85B3C";
         move = "translate(3px, 3px)";
     }
     useEffect(() => { // Tự xóa lỗi khi người dùng đã chọn đủ file (để lỗi không đứng mãi):
@@ -1133,13 +1133,7 @@ function SamtoolsBedcov () {
                                         </div>
                                         <button
                                             disabled="True"
-                                            style={fileBtnStyle({opacity: "0.5", background: "#F1F5F9",})}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = "#f5f5f5";
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = "#ffffff";
-                                            }}
+                                            style={fileBtnStyle({opacity: "0.5", background: "#F1F5F9", cursor: !hasIndex ? "not-allowed" : "pointer",})}
                                         >
                                             {uploadFileBtn()}
                                         </button>
@@ -2388,7 +2382,7 @@ function SamtoolsBedcov () {
                         disabled={loading}
                         onClick={handleRun}
                     >
-                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="#FF7F50" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M20.4086 9.35258C22.5305 10.5065 22.5305 13.4935 20.4086 14.6474L7.59662 21.6145C5.53435 22.736 3 21.2763 3 18.9671L3 5.0329C3 2.72368 5.53435 1.26402 7.59661 2.38548L20.4086 9.35258Z" stroke="#FF7F50" stroke-width="1.5"></path> </g></svg>
+                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M20.4086 9.35258C22.5305 10.5065 22.5305 13.4935 20.4086 14.6474L7.59662 21.6145C5.53435 22.736 3 21.2763 3 18.9671L3 5.0329C3 2.72368 5.53435 1.26402 7.59661 2.38548L20.4086 9.35258Z" stroke="#FF7F50" stroke-width="1.5"></path> </g></svg>
                         {loading ? "Running..." : "Run"}
                     </button>
                     {validationError && (
