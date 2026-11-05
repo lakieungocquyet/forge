@@ -3,15 +3,15 @@ function ReportAnIssue () {
         <div>
             <div
                 style={{
-                    fontSize: "15px",
+                    fontSize: "13px",
                 }}
             >
-                Support
+                Docs / Support / Report an issue
             </div>
             <div
                 style={{
-                    fontSize: "40px",
-                    padding: "15px 0px",
+                    fontSize: "36px",
+                    padding: "10px 0px",
                     fontWeight: "600"
                 }}
             >
@@ -42,9 +42,45 @@ function ReportAnIssue () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: "5px"
                 }}
             >
-                The easiest way is to open an issue on GitHub:
+                <span>
+                    The easiest way is to open an issue on GitHub:
+                </span>
+                <div
+                    style={{
+                        fontSize: "15px",
+                        padding: "5px 0px",
+                        lineHeight: "1.5",
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: "5px"
+                    }}
+                >
+                    <a
+                        class="button"
+                        href="https://github.com/lakieungocquyet/forge/issues"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.textDecoration = "underline";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.textDecoration = "none";
+                        }}
+                        style={{
+                            color: "#ff5b20",
+                            textDecoration: "none",
+                            fontWeight: "600"
+                        }}
+                    >Open an issue on GitHub</a>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="16px" width="16px" fill="#ff5b20"><path d="M5,21q-0.83,0-1.41-0.59T3,19V5Q3,4.17 3.59,3.59T5,3h7V5H5V19H19V12h2v7q0,0.82-0.59,1.41T19,21H5Zm4.7-5.3L8.3,14.3L17.6,5H14V3h7v7H19V6.4L9.7,15.7Z"/></svg>
+                </div>
             </div>
 
             <div
@@ -52,35 +88,10 @@ function ReportAnIssue () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
-            >
-                <a 
-                    class="button" 
-                    href="https://github.com/lakieungocquyet/forge/issues" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.textDecoration = "underline";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.textDecoration = "none";
-                    }}
-                    style={{
-                        color: "#ff5b20",
-                        textDecoration: "none",
-                        fontWeight: "600"
-                    }}
-                >Open an issue on GitHub</a>
-            </div>
-            <div
-                style={{
-                    fontSize: "15px",
-                    padding: "5px 0px",
-                    lineHeight: "1.5",
-                }}               
+                }}
             >
                 Don't have a GitHub account? Send me an email at{" "}
-                <a 
+                <a
                     href="mailto:quyetlakn@gmail.com"
                     onMouseEnter={(e) => {
                         e.currentTarget.style.textDecoration = "underline";
@@ -112,7 +123,7 @@ function ReportAnIssue () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}               
+                }}
             >
                 The more details you share, the faster I can fix it:
             </div>
@@ -143,7 +154,7 @@ function ReportAnIssue () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}               
+                }}
             >
                 Feature suggestions are just as welcome. Open an issue and describe what you would like to see in FORGE.
             </div>

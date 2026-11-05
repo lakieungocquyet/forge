@@ -6,21 +6,26 @@ function Documentation () {
     const navigate = useNavigate();
     const breadcrumbItems = [
         { label: "FORGE Home", path: "/" },
-        { label: "About", path: "/docs" },
+        { label: "Docs", path: "/docs" },
     ];
     return (
         <div>
             <Breadcrumb items={breadcrumbItems} />
-            <div 
+            <div
                 className="documentation"
                 style={{
                         minHeight: "100vh",
                         display: "grid",
-                        gridTemplateColumns: "300px 1fr",
+                        gridTemplateColumns: "250px 1fr",
                         gridTemplateAreas: '"left right"',
+                        border: "1px solid  #d5d5d5",
+                        margin: "20px 30px",
+                        padding: "0px 20px",
+                        boxSizing: "border-box",
+                        borderRadius: "10px"
                 }}
             >
-                <div 
+                <div
                     className="sidebar"
                     style={{
                         width: "100%",
@@ -30,8 +35,7 @@ function Documentation () {
                         display: "flex",
                         flexDirection: "column",
                         paddingTop: "20px",
-                        paddingLeft: "50px",
-                        paddingRight: "30px",
+                        paddingRight: "20px",
                         overflowY: "auto",
                         boxSizing: "border-box"
                     }}
@@ -45,7 +49,7 @@ function Documentation () {
                             }
                             .sidebar_button{
                                 font-size: 14px;
-                                line-height: 21px;      
+                                line-height: 21px;
                                 font-weight: 500;
                                 width: 100%;
                                 display: flex;
@@ -66,27 +70,29 @@ function Documentation () {
                     <span className="sidebar_section_title">Introduction</span>
                     <button className="sidebar_button" onClick={() => navigate("/docs/about-us")}>About us</button>
                     <button className="sidebar_button" onClick={() => navigate("/docs/what-is-forge")} >What is FORGE?</button>
+                    {/*
                     <Divider style={{marginTop: "10px", marginBottom: "10px"}}/>
                     <span className="sidebar_section_title">License</span>
                     <button className="sidebar_button" onClick={() => navigate("/docs/license")}>GPL-3.0 license</button>
                     <button className="sidebar_button">Third-party Packages</button>
+                    */}
                     <Divider style={{marginTop: "10px", marginBottom: "10px"}}/>
                     <span className="sidebar_section_title">Support</span>
                     <button className="sidebar_button" onClick={() => navigate("/docs/faq")}>FAQ</button>
                     <button className="sidebar_button" onClick={() => navigate("/docs/contact-us")}>Contact us</button>
                     <button className="sidebar_button" onClick={() => navigate("/docs/report-an-issue")}>Report an Issue</button>
                 </div>
-                <div 
+                <div
                     className="content"
                     style={{
-                        padding: "30px 30px",
+                        padding: "20px 20px",
                         gridArea: "right"
                     }}
                 >
                     <Outlet />
                 </div>
             </div>
-            
+
         </div>
     )
 }

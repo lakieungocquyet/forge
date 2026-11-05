@@ -3,15 +3,15 @@ function ContactUs () {
         <div>
             <div
                 style={{
-                    fontSize: "15px",
+                    fontSize: "13px",
                 }}
             >
-                Support
+                Docs / Support / Contact us
             </div>
             <div
                 style={{
-                    fontSize: "40px",
-                    padding: "15px 0px",
+                    fontSize: "36px",
+                    padding: "10px 0px",
                     fontWeight: "600"
                 }}
             >
@@ -37,16 +37,16 @@ function ContactUs () {
             >
                 Email
             </div>
-            
+
             <div
                 style={{
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 For general questions or feedback:{" "}
-                <a 
+                <a
                     href="mailto:quyetlakn@gmail.com"
                     onMouseEnter={(e) => {
                         e.currentTarget.style.textDecoration = "underline";
@@ -62,7 +62,7 @@ function ContactUs () {
                 >
                     quyetlakn@gmail.com
                 </a>
-            </div> 
+            </div>
 
             <div
                 style={{
@@ -73,17 +73,17 @@ function ContactUs () {
             >
                 GitHub
             </div>
-            
+
             <div
                 style={{
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 For bugs, feature requests, and discussions about the project, please use{" "}
-                <a 
-                    href="https://github.com/lakieungocquyet/forge" 
+                <a
+                    href="https://github.com/lakieungocquyet/forge"
                     target="_blank" rel="noopener noreferrer"
                     onMouseEnter={(e) => {
                         e.currentTarget.style.textDecoration = "underline";
@@ -116,7 +116,7 @@ function ContactUs () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}             
+                }}
             >
             FORGE is a personal project, so replies may take a few days. Thank you for your patience!
             </div>

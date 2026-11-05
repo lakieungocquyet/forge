@@ -3,15 +3,15 @@ function FAQ () {
         <div>
             <div
                 style={{
-                    fontSize: "15px",
+                    fontSize: "13px",
                 }}
             >
-                Support
+                Docs / Support / FAQ
             </div>
             <div
                 style={{
-                    fontSize: "40px",
-                    padding: "15px 0px",
+                    fontSize: "36px",
+                    padding: "10px 0px",
                     fontWeight: "600"
                 }}
             >
@@ -27,13 +27,13 @@ function FAQ () {
             >
                 What is FORGE?
             </div>
-            
+
             <div
                 style={{
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 FORGE (Focused Repository for Genomic Exploration) is a free, open-source project that aims to make genomic analysis easier, right in your browser.
             </div>
@@ -47,13 +47,13 @@ function FAQ () {
             >
                 Is FORGE free to use?
             </div>
-            
+
             <div
                 style={{
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 Yes. FORGE is completely free and open source, released under the GPL-3.0 license.
             </div>
@@ -67,13 +67,13 @@ function FAQ () {
             >
                 Do I need to install anything?
             </div>
-            
+
             <div
                 style={{
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 No. FORGE runs in your web browser, so there's nothing to download or set up.
             </div>
@@ -87,13 +87,13 @@ function FAQ () {
             >
                 Is my data uploaded to a server?
             </div>
-            
+
             <div
                 style={{
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 No. FORGE is built on WebAssembly (WASM), which allows the analysis code to
                 run directly inside your browser. When you open a file, it is read and

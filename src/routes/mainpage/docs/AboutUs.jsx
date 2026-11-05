@@ -1,17 +1,19 @@
-function AboutUs () {
+import Divider from "../../../components/ui/Divider";
+
+function AboutUs() {
     return (
         <div>
             <div
                 style={{
-                    fontSize: "15px",
+                    fontSize: "13px",
                 }}
             >
-                Introduction
+                Docs / Introduction / About us
             </div>
             <div
                 style={{
-                    fontSize: "40px",
-                    padding: "15px 0px",
+                    fontSize: "36px",
+                    padding: "10px 0px",
                     fontWeight: "600"
                 }}
             >
@@ -22,9 +24,9 @@ function AboutUs () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}             
+                }}
             >
-                Hi there! 👋 I'm Quyết, the maintainer of FORGE.
+                Hi there! I'm Quyết, the maintainer of FORGE.
             </div>
 
             <div
@@ -36,13 +38,13 @@ function AboutUs () {
             >
                 How it started
             </div>
-            
+
             <div
                 style={{
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 I started FORGE in June 2026. While learning bioinformatics, I noticed that
                 even a simple analysis often meant installing several programs, setting up
@@ -66,7 +68,7 @@ function AboutUs () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 I want to be honest with you: FORGE is still quite small. It's a personal
                 project, built and maintained by one person in his spare time, so there's a
@@ -78,7 +80,7 @@ function AboutUs () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 But I'm working on it, and I'm improving it little by little, every day.
                 New ideas, fixes, and small upgrades keep coming, and every step makes it a
@@ -100,7 +102,7 @@ function AboutUs () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 My long-term vision is to grow FORGE into a reliable, easy-to-use platform
                 for genomic exploration. That means more tools, support for more file
@@ -113,7 +115,7 @@ function AboutUs () {
                     fontSize: "15px",
                     padding: "5px 0px",
                     lineHeight: "1.5",
-                }}            
+                }}
             >
                 FORGE will always be free and open source, released under the GPL-3.0
                 license, because I believe good scientific tools should be open to everyone.
@@ -148,10 +150,10 @@ function AboutUs () {
                     lineHeight: "1.5",
                 }}
             >
-                You can follow the project and its progress on{" "} 
-                <a 
-                    href="https://github.com/lakieungocquyet/forge" 
-                    target="_blank" 
+                You can follow the project and its progress on{" "}
+                <a
+                    href="https://github.com/lakieungocquyet/forge"
+                    target="_blank"
                     rel="noopener noreferrer"
                     onMouseEnter={(e) => {
                         e.currentTarget.style.textDecoration = "underline";
@@ -166,7 +168,7 @@ function AboutUs () {
                     }}
                 >
                     GitHub
-                </a>. 
+                </a>.
                 If FORGE is useful to you, a ⭐ on the repository would mean a lot!
             </div>
 
@@ -187,7 +189,7 @@ function AboutUs () {
                     lineHeight: "1.5",
                     color: "#666",
                 }}
-            > 
+            >
                 La Kieu Ngoc Quyet <br/>
                 The maintainer of FORGE
             </div>
