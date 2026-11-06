@@ -861,7 +861,6 @@ function SamtoolsBedcov () {
                         border: "1px solid #E2E8F0",
                         gap: "10px"
                     }}
-
                 >
                     {/*
                         --------------------------------------------------

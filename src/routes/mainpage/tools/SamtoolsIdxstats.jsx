@@ -24,7 +24,7 @@ const inputBoxStyle = ({ opacity = 1 , backgroundcolor = "#F1F5F9"} = {}) => ({
 export const IDXSTATS_STAGES = [
     { id: "validate", title: "Input validation" },
     { id: "init",     title: "Initialize WebAssembly" },
-    { id: "exec",     title: "Execute bedcov" },
+    { id: "exec",     title: "Execute idxstats" },
     { id: "collect",  title: "Collect output" },
 ];
 
