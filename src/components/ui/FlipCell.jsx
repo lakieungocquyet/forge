@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-function FlipCell({ 
+function FlipCell({
     tick,
-    front, 
-    back, 
-    interval = 5000, 
+    front,
+    back,
+    interval = 5000,
     delay = 0,
     rotate = true,
     // frontColor = "#ffffff",
     frontColor = "transparent",
-    backColor = "#FF7F50", 
+    backColor = "#FF7F50",
 }) {
   	const [flipped, setFlipped] = useState(false);
 
@@ -29,13 +29,13 @@ function FlipCell({
   return (
     <div className="cell" style={{ animationDelay: `${delay}ms` }}>
       <div className={`cell_inner ${flipped ? "show-back" : ""}`}>
-        <div 
-			className="front" 
+        <div
+			className="front"
 			style={{ backgroundColor: frontColor}}
 		>
 			{front}
 		</div>
-        <div 
+        <div
 			className="back"
 			style={{ backgroundColor: backColor}}
 		>
