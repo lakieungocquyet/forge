@@ -3,6 +3,21 @@ import { useState, useRef } from "react";
 import Breadcrumb from "../../../components/ui/Breadcrumb"
 import Divider from "../../../components/ui/Divider";
 
+const btnStyle = ({ border = "1px solid #cfcfcf" , backgroundcolor = "#ffffff"} = {}) => ({
+    minWidth: "70px",
+    flex: "0 0 calc((100% - 180px) / 10)",
+    height: "40px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: backgroundcolor,
+    border: border,
+    borderRadius: "5px",
+    fontSize: "15px",
+    fontWeight: "500",
+})
+
 function Bcftools () {
     const breadcrumbItems = [
         {
@@ -23,10 +38,10 @@ function Bcftools () {
 
     // Biến thường, tính từ URL mỗi lần render (KHÔNG dùng useState)
     let selectedSection = "bcftools_stats"; // Khởi tạo trạng thái trang gốc dùng để set style nút
-    if (pathname.includes("bcftools-stats")) 
+    if (pathname.includes("bcftools-stats"))
         selectedSection = "bcftools_stats"; // Dùng để set style nút
     return (
-        <div 
+        <div
             id="samtools"
             style={{
                 minHeight: "100vh",
@@ -37,8 +52,8 @@ function Bcftools () {
             }}
         >
             <Breadcrumb items={breadcrumbItems} />
-            <p 
-                id="samtools_title"
+            <p
+                id="bcftools_title"
                 style={{
                     fontSize: "40px",
                     fontWeight: " 200",
@@ -48,8 +63,8 @@ function Bcftools () {
             >
                 Bcftools
             </p>
-            <p 
-                id="samtools_description"
+            <p
+                id="bcftools_description"
                 style={{
                     textAlign: "left",
                     fontSize: "20px",
@@ -62,8 +77,8 @@ function Bcftools () {
                 A set of utilities that manipulate variant calls in the Variant Call Format (VCF) and its binary counterpart BCF
             </p>
             <Divider margin="50px" />
-            <div 
-                className="samtools_programs_grid"
+            <div
+                className="bcftools_programs_grid"
                 style={{
                     padding: "0px 50px",
                     boxSizing: "border-box",
@@ -73,10 +88,10 @@ function Bcftools () {
                     flexWrap: "wrap",
                 }}
             >
-                <button 
+                <button
                     onClick={() => {
                         navigate("/tools/bcftools/bcftools-stats");
-                    }} 
+                    }}
                     className="samtools_idxstats_button"
                     onMouseEnter={(e) => {
                         if (selectedSection !== "bcftools_stats") {
@@ -84,52 +99,29 @@ function Bcftools () {
                             e.currentTarget.style.cursor = "pointer";
                         } else {
                             e.currentTarget.style.cursor = "default";
-                        } 
+                        }
                     }}
                     onMouseLeave={(e) => {
                         if (selectedSection !== "bcftools_stats") {
                             e.currentTarget.style.transform = "scale(1)";
-                        } 
-                    }}
-                    
-                    style={
-                        selectedSection === "bcftools_stats" ? {
-                            minWidth: "150px",
-                            flex: "0 0 calc((100% - 180px) / 10)",
-                            height: "30px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: "#FF7F50",
-                            border: "none",
-                        } : {
-                            minWidth: "150px",
-                            flex: "0 0 calc((100% - 180px) / 10)",
-                            height: "30px",
-                            backgroundColor: "#ffffff",
-                            border: "1px solid #cfcfcf",
-                            transition: "transform 0.15s ease",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            // padding: "5px 10px",
                         }
-                        
+                    }}
+
+                    style={
+                        selectedSection === "bcftools_stats" ? btnStyle({backgroundcolor: "#FF7F50", border: "none",}) : btnStyle()
                     }
                 >
-                    <p 
-                        id="samtools_idxstats_button_title"
+                    <p
+                        id="bcftools_stats_button_title"
                         style={{
                             fontSize: "15px",
                             fontWeight: "500",
                         }}
                     >
-                        Bcftools stats
+                        Stats
                     </p>
                 </button>
-                
+
             </div>
             <div
                 id="tool_parameters"
@@ -148,7 +140,7 @@ function Bcftools () {
                 <Outlet />
             </div>
         </div>
-        
+
     )
 }
 export default Bcftools;
