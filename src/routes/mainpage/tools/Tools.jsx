@@ -14,11 +14,50 @@ function Tools () {
         },
     ];
     return (
-        <div className="tools">
+        <div 
+            className="tools"
+            style={{
+                minHeight: "100vh",
+                display: "flex",
+                gap: "20px",
+                alignItems: "start",
+                flexDirection: "column",
+                boxSizing: "border-box",
+            }}
+        >
             <Breadcrumb items={breadcrumbItems} />
-            <div className="tools_title_and_description"> 
-                <div className="tools_title">FORGE tools</div>
-                <div className="tools_description">Our mission is to develop and maintain free, user-friendly bioinformatics tools that are accessible to all researchers</div>
+            <div 
+                className="tools_title_and_description"
+                style={{
+                    display: "flex",
+                    alignItems: "start",
+                    gap: "20px",
+                    width: "100%",
+                    flexDirection: "column",
+                    paddingLeft: "50px",
+                    fontFamily: 'Inter',
+                }}
+            > 
+                <div 
+                    className="tools_title"
+                    style={{
+                        lineHeight: "1.1",
+                        fontSize: "44px",
+                        fontWeight: "700",
+                        paddingTop: "30px"
+                    }}
+                >
+                    FORGE tools
+                </div>
+                <div 
+                    className="tools_description"
+                    style={{
+                        fontSize: "20px",
+                        color: "#555555",
+                    }}
+                >
+                    Free, user-friendly bioinformatics tools that are accessible to all researchers
+                </div>
             </div>
             <div 
                 id="tools_container"
@@ -29,17 +68,20 @@ function Tools () {
                     paddingLeft: "50px",
                     paddingRight: "50px",
                     display: "flex",
-                    gap: "50px",
+                    gap: "15px",
                     flexDirection: "column",
+                    fontFamily: 'Inter',
                 }}
             >
                 <Divider/>
                 <span style={{
-                    padding: 0,
+                    paddingTop: "20px",
                     margin: 0,
-                    fontSize: "25px",
-                    fontWeight: "500"
-                }}> In-house Tools </span>
+                    fontSize: "22px",
+                    fontWeight: "600"
+                }}> 
+                    In-house tools 
+                </span>
                 <div 
                     style={{
                         padding: 0,
@@ -96,19 +138,11 @@ function Tools () {
                             A toolkit for annotating, and converting VCF files
                         </p>
                     </button> */}
-                    <button 
-                        onClick={() => {navigate("/tools/biopostgresql")}} 
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "scale(1.05)";
-                            e.currentTarget.style.cursor = "pointer";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "scale(1)";
-                        }}
+                    <div 
                         style={{
+                            borderRadius: "10px",
                             minWidth: "300px",
                             flex: "0 0 calc((100% - 100px) / 4)",
-                            height: "150px",
                             backgroundColor: "#ffffff",
                             border: "1px solid #cfcfcf",
                             transition: "transform 0.15s ease",
@@ -116,42 +150,90 @@ function Tools () {
                             flexDirection: "column",
                             alignItems: "start",
                             padding: "30px 30px",
-                            gap: "20px",
+                            gap: "15px",
                         }}
                     >
-                        <p
+                        <div
                             style={{
                                 fontSize: "20px",
-                                fontWeight: "600",
-                                padding: 0,
-                                margin: 0,
+                                fontWeight: "700",
+                                fontFamily: 'Inter',
                             }}
                         >
                             BioPostgreSQL
-                        </p>
-                        <p
+                        </div>
+                        <div
                             style={{
                                 textAlign: "left",
-                                fontSize: "13px",
-                                fontWeight: 0,
-                                textAlign: "justify",
-                                padding: 0,
-                                margin: 0,
+                                fontSize: "15px",
                                 color: "#555555",
+                                fontFamily: 'Inter',
                             }}
                         >
                             A tool for managing and querying structured biological data with PostgreSQL
-                        </p>
-                    </button>
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "row",
+                                gap: "5px",
+                                alignItems: "center"
+                            }}
+                        >
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#4A3A33",
+                                    background: "#F5F0ED",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                }}
+                            >
+                                Database
+                            </span>
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#4A3A33",
+                                    background: "#F5F0ED",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                }}
+                            >
+                                Query
+                            </span>
+                        </div>
+                        <span
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                paddingTop: "10px",
+                                fontSize: "15px",
+                                fontWeight: "600",
+                                color: "#B23C12",
+                                textDecoration: "none",
+                            }}
+                        onClick={() => {navigate("/tools/biopostgresql")}} 
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.textDecoration = "underline";
+                            e.currentTarget.style.cursor = "pointer";
+                        }}
+                        onMouseLeave={(e) => {
+                           e.currentTarget.style.textDecoration = "none";
+                        }}
+                        >
+                            Open tool 
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 18 18" height="18px" width="18px" fill="#B23C12"><path d="M13.13,10.75H4V9.25h9.13L8.94,5.06L10,4l6,6l-6,6L8.94,14.94l4.19-4.19Z"/></svg>
+                        </span>
+                    </div>
                 </div>
-                <Divider/>
                 <span style={{
-                    padding: 0,
-                    margin: 0,
-                    fontSize: "25px",
-                    fontWeight: "500"
+                    paddingTop: "20px",
+                    fontSize: "22px",
+                    fontWeight: "600"
                 }}> 
-                    Third-party Tools 
+                    Third-party tools 
                 </span>
                 <div 
                     id="tools_grid"
@@ -164,19 +246,11 @@ function Tools () {
                         flexWrap: "wrap",
                     }}
                 >
-                    {/* <button 
-                        onClick={() => {navigate("/tools/vcftoolkit")}} 
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "scale(1.05)";
-                            e.currentTarget.style.cursor = "pointer";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "scale(1)";
-                        }}
+                    <div 
                         style={{
+                            borderRadius: "10px",
                             minWidth: "300px",
                             flex: "0 0 calc((100% - 60px) / 4)",
-                            height: "150px",
                             backgroundColor: "#ffffff",
                             border: "1px solid #cfcfcf",
                             transition: "transform 0.15s ease",
@@ -184,93 +258,88 @@ function Tools () {
                             flexDirection: "column",
                             alignItems: "start",
                             padding: "30px 30px",
-                            gap: "20px",
+                            gap: "15px",
                         }}
                     >
-                        <p
+                        <div
                             style={{
                                 fontSize: "20px",
-                                fontWeight: "600",
-                                padding: 0,
-                                margin: 0,
-                            }}
-                        >
-                            BWA
-                        </p>
-                        <p
-                            style={{
-                                textAlign: "left",
-                                fontSize: "13px",
-                                textAlign: "justify",
-                                fontWeight: 0,
-                                padding: 0,
-                                margin: 0,
-                                color: "#555555",
-                            }}
-                        >
-                            A software package for mapping short-read DNA sequences against a large reference genome
-                        </p>
-                    </button> */}
-                    <button 
-                        onClick={() => {navigate("/tools/samtools")}} 
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "scale(1.05)";
-                            e.currentTarget.style.cursor = "pointer";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "scale(1)";
-                        }}
-                        style={{
-                            minWidth: "300px",
-                            flex: "0 0 calc((100% - 60px) / 4)",
-                            height: "150px",
-                            backgroundColor: "#ffffff",
-                            border: "1px solid #cfcfcf",
-                            transition: "transform 0.15s ease",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "start",
-                            padding: "30px 30px",
-                            gap: "20px",
-                        }}
-                    >
-                        <p
-                            style={{
-                                fontSize: "20px",
-                                fontWeight: "600",
-                                padding: 0,
-                                margin: 0,
+                                fontWeight: "700",
+                                fontFamily: 'Inter',
                             }}
                         >
                             Samtools
-                        </p>
-                        <p
+                        </div>
+                        <div
                             style={{
                                 textAlign: "left",
-                                fontSize: "13px",
-                                fontWeight: 0,
-                                textAlign: "justify",
-                                padding: 0,
-                                margin: 0,
+                                fontSize: "15px",
                                 color: "#555555",
+                                fontFamily: 'Inter',
                             }}
                         >
                             A set of utilities that manipulate alignments in the SAM (Sequence Alignment/Map), BAM, and CRAM formats
-                        </p>
-                    </button>
-                    <button 
-                        onClick={() => {navigate("/tools/bcftools")}} 
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "row",
+                                gap: "5px",
+                                alignItems: "center"
+                            }}
+                        >
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#4A3A33",
+                                    background: "#F5F0ED",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                }}
+                            >
+                                SAM
+                            </span>
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#4A3A33",
+                                    background: "#F5F0ED",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                }}
+                            >
+                                BAM
+                            </span>
+                        </div>
+                        <span
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                paddingTop: "10px",
+                                fontSize: "15px",
+                                fontWeight: "600",
+                                color: "#B23C12",
+                                textDecoration: "none",
+                            }}
+                        onClick={() => {navigate("/tools/samtools")}} 
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "scale(1.05)";
+                            e.currentTarget.style.textDecoration = "underline";
                             e.currentTarget.style.cursor = "pointer";
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "scale(1)";
+                           e.currentTarget.style.textDecoration = "none";
                         }}
+                        >
+                            Open tool 
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 18 18" height="18px" width="18px" fill="#B23C12"><path d="M13.13,10.75H4V9.25h9.13L8.94,5.06L10,4l6,6l-6,6L8.94,14.94l4.19-4.19Z"/></svg>
+                        </span>
+                    </div>
+                    <div 
                         style={{
+                            borderRadius: "10px",
                             minWidth: "300px",
                             flex: "0 0 calc((100% - 60px) / 4)",
-                            height: "150px",
                             backgroundColor: "#ffffff",
                             border: "1px solid #cfcfcf",
                             transition: "transform 0.15s ease",
@@ -278,33 +347,83 @@ function Tools () {
                             flexDirection: "column",
                             alignItems: "start",
                             padding: "30px 30px",
-                            gap: "20px",
+                            gap: "15px"
                         }}
                     >
-                        <p
+                        <div
                             style={{
                                 fontSize: "20px",
-                                fontWeight: "600",
-                                padding: 0,
-                                margin: 0,
+                                fontWeight: "700",
+                                fontFamily: 'Inter',
                             }}
                         >
                             Bcftools
-                        </p>
-                        <p
+                        </div>
+                        <div
                             style={{
                                 textAlign: "left",
-                                fontSize: "13px",
-                                textAlign: "justify",
-                                fontWeight: 0,
-                                padding: 0,
-                                margin: 0,
+                                fontSize: "15px",
                                 color: "#555555",
+                                fontFamily: 'Inter',
                             }}
                         >
                             A set of utilities that manipulate variant calls in the Variant Call Format (VCF) and its binary counterpart BCF
-                        </p>
-                    </button>
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "row",
+                                gap: "5px",
+                                alignItems: "center"
+                            }}
+                        >
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#4A3A33",
+                                    background: "#F5F0ED",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                }}
+                            >
+                                VCF
+                            </span>
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#4A3A33",
+                                    background: "#F5F0ED",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                }}
+                            >
+                                BCF
+                            </span>
+                        </div>
+                        <span
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                paddingTop: "10px",
+                                fontSize: "15px",
+                                fontWeight: "600",
+                                color: "#B23C12",
+                                textDecoration: "none",
+                            }}
+                        onClick={() => {navigate("/tools/bcftools")}} 
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.textDecoration = "underline";
+                            e.currentTarget.style.cursor = "pointer";
+                        }}
+                        onMouseLeave={(e) => {
+                           e.currentTarget.style.textDecoration = "none";
+                        }}
+                        >
+                            Open tool 
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 18 18" height="18px" width="18px" fill="#B23C12"><path d="M13.13,10.75H4V9.25h9.13L8.94,5.06L10,4l6,6l-6,6L8.94,14.94l4.19-4.19Z"/></svg>
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
