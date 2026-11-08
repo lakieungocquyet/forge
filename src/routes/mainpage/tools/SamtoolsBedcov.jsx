@@ -326,14 +326,45 @@ const BedcovVisual = ({ regions, hasReads }) => {
                 {track && <ChartCanvas type="line" height={180} data={trackData} options={trackOpts} />}
             </ChartPanel>
 
-            <ChartPanel title="Top 10 regions by mean depth">
+            <ChartPanel 
+                title="Top 10 regions by mean depth"
+                hint="Ranked by mean depth (x). Bars are scaled to the highest region."
+            >
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div
+                        style={{ display: "grid", gridTemplateColumns: "20px minmax(160px, 280px) 1fr 80px", alignItems: "center", gap: "25px", fontSize: "12px", fontWeight: "600",color: "#5C4A42", marginTop: "10px"}}
+                    >
+                        <div>
+                            #
+                        </div>
+                        <div>
+                            REGION/GENE
+                        </div>
+                        <div></div>
+                        <div
+                            style={{
+                                textAlign: "end"
+                            }}
+                        >
+                            MEAN DEPTH
+                        </div>
+
+                    </div>
                     {s.topRegions.map((r, i) => (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(160px, 280px) 1fr 80px", alignItems: "center", gap: "12px", fontSize: "12px" }}>
-                            <div style={{ minWidth: 0 }}>
-                                <div style={{ fontWeight: 600 }}>{r.chrom}:{r.start.toLocaleString()}-{r.end.toLocaleString()}</div>
+                        <div key={i} style={{ paddingTop: "10px", display: "grid", gridTemplateColumns: "20px minmax(160px, 280px) 1fr 80px", alignItems: "center", gap: "25px", fontSize: "12px", borderTop: "1px solid #EFE7E2"}}>
+                            <div
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#5C4A42",
+                                    fontVariantNumeric: "tabular-nums",
+                                }}
+                            >
+                                {i + 1}
+                            </div>
+                            <div style={{ minWidth: 0, }}>
+                                <div style={{ fontSize: "14px", fontWeight: 600 }}>{r.chrom}:{r.start.toLocaleString()}-{r.end.toLocaleString()}</div>
                                 {r.annotation && (
-                                    <div title={r.annotation} style={{ color: BC.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    <div title={r.annotation} style={{ color: BC.muted, fontSize: "11px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: "6px", background: "#F5F0ED", padding: "3px 3px", borderRadius: "6px", }}>
                                         {r.annotation}
                                     </div>
                                 )}
@@ -341,7 +372,7 @@ const BedcovVisual = ({ regions, hasReads }) => {
                             <div style={{ height: "8px", background: BC.subtle, borderRadius: "4px" }}>
                                 <div style={{ width: `${(r.mean / maxTop) * 100}%`, height: "100%", background: BC.blue, borderRadius: "4px" }} />
                             </div>
-                            <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtNum(r.mean, 1)}x</div>
+                            <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: "700", fontSize: "12px" }}>{fmtNum(r.mean, 1)}x</div>
                         </div>
                     ))}
                 </div>
