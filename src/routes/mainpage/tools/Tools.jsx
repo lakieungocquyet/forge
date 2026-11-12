@@ -35,7 +35,6 @@ function Tools () {
                     width: "100%",
                     flexDirection: "column",
                     paddingLeft: "50px",
-                    fontFamily: 'Inter',
                 }}
             > 
                 <div 
@@ -70,7 +69,6 @@ function Tools () {
                     display: "flex",
                     gap: "15px",
                     flexDirection: "column",
-                    fontFamily: 'Inter',
                 }}
             >
                 <Divider/>
@@ -91,19 +89,11 @@ function Tools () {
                         gap: "20px",
                     }}
                 >
-                    {/* <button 
-                        onClick={() => {navigate("/tools/vcftoolkit")}} 
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "scale(1.05)";
-                            e.currentTarget.style.cursor = "pointer";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "scale(1)";
-                        }}
+                    <div 
                         style={{
+                            borderRadius: "10px",
                             minWidth: "300px",
                             flex: "0 0 calc((100% - 100px) / 4)",
-                            height: "150px",
                             backgroundColor: "#ffffff",
                             border: "1px solid #cfcfcf",
                             transition: "transform 0.15s ease",
@@ -111,33 +101,74 @@ function Tools () {
                             flexDirection: "column",
                             alignItems: "start",
                             padding: "30px 30px",
-                            gap: "20px",
+                            gap: "15px",
                         }}
                     >
-                        <p 
+                        <div 
                             style={{
                                 fontSize: "20px",
-                                fontWeight: "600",
-                                padding: 0,
-                                margin: 0,
+                                fontWeight: "700",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
                             }}
                         >
                             VCFtoolkit
-                        </p>
-                        <p 
+                            <span style={{ fontSize:"10px", color: "#B23C12", backgroundColor: "#FFEDE5", borderRadius: "5px", padding: "5px 5px", border: "1px solid #F8D5C6"}}> Available soon </span>
+                        </div>
+                        <div 
                             style={{
                                 textAlign: "left",
-                                fontSize: "13px",
-                                fontWeight: 0,
-                                textAlign: "justify",
-                                padding: 0,
-                                margin: 0,
+                                fontSize: "15px",
                                 color: "#555555",
                             }}
                         >
                             A toolkit for annotating, and converting VCF files
-                        </p>
-                    </button> */}
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "row",
+                                gap: "5px",
+                                alignItems: "center"
+                            }}
+                        >
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#4A3A33",
+                                    background: "#F5F0ED",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                }}
+                            >
+                                VCF
+                            </span>
+                        </div>
+                        <span
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                paddingTop: "10px",
+                                fontSize: "15px",
+                                fontWeight: "600",
+                                color: "#B23C12",
+                                textDecoration: "none",
+                            }}
+                        // onClick={() => {navigate("/tools/vcftoolkit")}} 
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.textDecoration = "underline";
+                            e.currentTarget.style.cursor = "pointer";
+                        }}
+                        onMouseLeave={(e) => {
+                           e.currentTarget.style.textDecoration = "none";
+                        }}
+                        >
+                            Open tool 
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 18 18" height="18px" width="18px" fill="#B23C12"><path d="M13.13,10.75H4V9.25h9.13L8.94,5.06L10,4l6,6l-6,6L8.94,14.94l4.19-4.19Z"/></svg>
+                        </span>
+                    </div>
                     <div 
                         style={{
                             borderRadius: "10px",
@@ -157,7 +188,6 @@ function Tools () {
                             style={{
                                 fontSize: "20px",
                                 fontWeight: "700",
-                                fontFamily: 'Inter',
                             }}
                         >
                             BioPostgreSQL
@@ -167,7 +197,6 @@ function Tools () {
                                 textAlign: "left",
                                 fontSize: "15px",
                                 color: "#555555",
-                                fontFamily: 'Inter',
                             }}
                         >
                             A tool for managing and querying structured biological data with PostgreSQL
@@ -265,7 +294,6 @@ function Tools () {
                             style={{
                                 fontSize: "20px",
                                 fontWeight: "700",
-                                fontFamily: 'Inter',
                             }}
                         >
                             Samtools
@@ -275,7 +303,6 @@ function Tools () {
                                 textAlign: "left",
                                 fontSize: "15px",
                                 color: "#555555",
-                                fontFamily: 'Inter',
                             }}
                         >
                             A set of utilities that manipulate alignments in the SAM (Sequence Alignment/Map), BAM, and CRAM formats
@@ -354,7 +381,6 @@ function Tools () {
                             style={{
                                 fontSize: "20px",
                                 fontWeight: "700",
-                                fontFamily: 'Inter',
                             }}
                         >
                             Bcftools
@@ -364,7 +390,6 @@ function Tools () {
                                 textAlign: "left",
                                 fontSize: "15px",
                                 color: "#555555",
-                                fontFamily: 'Inter',
                             }}
                         >
                             A set of utilities that manipulate variant calls in the Variant Call Format (VCF) and its binary counterpart BCF
@@ -412,6 +437,97 @@ function Tools () {
                                 textDecoration: "none",
                             }}
                         onClick={() => {navigate("/tools/bcftools")}} 
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.textDecoration = "underline";
+                            e.currentTarget.style.cursor = "pointer";
+                        }}
+                        onMouseLeave={(e) => {
+                           e.currentTarget.style.textDecoration = "none";
+                        }}
+                        >
+                            Open tool 
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 18 18" height="18px" width="18px" fill="#B23C12"><path d="M13.13,10.75H4V9.25h9.13L8.94,5.06L10,4l6,6l-6,6L8.94,14.94l4.19-4.19Z"/></svg>
+                        </span>
+                    </div>
+                    <div 
+                        style={{
+                            borderRadius: "10px",
+                            minWidth: "300px",
+                            flex: "0 0 calc((100% - 60px) / 4)",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #cfcfcf",
+                            transition: "transform 0.15s ease",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "start",
+                            padding: "30px 30px",
+                            gap: "15px",
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: "20px",
+                                fontWeight: "700",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                            }}
+                        >
+                            Tracy
+                            <span style={{ fontSize:"10px", color: "#B23C12", backgroundColor: "#FFEDE5", borderRadius: "5px", padding: "5px 5px", border: "1px solid #F8D5C6"}}> Available soon </span>
+                        </div>
+                        <div
+                            style={{
+                                textAlign: "left",
+                                fontSize: "15px",
+                                color: "#555555",
+                            }}
+                        >
+                            basecalling, alignment, assembly and deconvolution of Sanger Chromatogram trace files
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "row",
+                                gap: "5px",
+                                alignItems: "center"
+                            }}
+                        >
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#4A3A33",
+                                    background: "#F5F0ED",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                }}
+                            >
+                                Sanger
+                            </span>
+                            <span
+                                style={{
+                                    fontSize: "12px",
+                                    color: "#4A3A33",
+                                    background: "#F5F0ED",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                }}
+                            >
+                                AB1
+                            </span>
+                        </div>
+                        <span
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                paddingTop: "10px",
+                                fontSize: "15px",
+                                fontWeight: "600",
+                                color: "#B23C12",
+                                textDecoration: "none",
+                            }}
+                        // onClick={() => {navigate("/tools/samtools")}} 
                         onMouseEnter={(e) => {
                             e.currentTarget.style.textDecoration = "underline";
                             e.currentTarget.style.cursor = "pointer";

@@ -57,8 +57,10 @@ function App() {
 
 						<Route path="tools" element={<Tools />}/> 
 						
-						<Route path="tools/vcftoolkit" element={<VCFtoolkit />}/>
-						<Route path="tools/vcftoolkit/vcftoolkit-convert" element={<VCFtoolkitConvert />}/>
+						<Route path="tools/vcftoolkit" element={<VCFtoolkit />}>
+							<Route index element={<VCFtoolkitConvert />} />
+							<Route path="vcftoolkit-convert" element={<VCFtoolkitConvert />}/>
+						</Route>
 
 						<Route path="tools/biopostgresql" element={<BioPostgreSQL />}/>
 
