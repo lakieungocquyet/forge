@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Cite } from "@citation-js/core";
 import Divider from "./Divider"
 import "@citation-js/plugin-bibtex";
+import "@citation-js/plugin-ris";
 import "@citation-js/plugin-csl";
 
 const C = {
@@ -31,9 +32,18 @@ function leadAuthor(authors = []) {
   return `${familyName(authors[0])} et al.`;
 }
 
+function normalizeSource(source) {
+    const text = String(source)
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .join("\n");
+    return /^TY\s*-/.test(text) ? text.replace(/^([A-Z][A-Z0-9])\s*-\s?/gm, "$1  - ") : text;
+}
+
 /** Parse one BibTeX entry into the strings the UI needs. */
 function parseCitation(source) {
-  const [item] = new Cite(source).data; // CSL-JSON
+  const [item] = new Cite(normalizeSource(source)).data; // CSL-JSON
   if (!item) throw new Error("No citation found in the given source");
 
   const data = { ...item };
@@ -60,14 +70,14 @@ function parseCitation(source) {
 
 /** Parse many entries; entries that fail to parse are skipped (and logged). */
 function parseCitations(sources = []) {
-  return sources.flatMap((source) => {
-    try {
-      return [parseCitation(source)];
-    } catch (err) {
-      console.warn("ToolInfo: could not parse citation", err);
-      return [];
-    }
-  });
+    return sources.flatMap((source) => {
+        try {
+            return [parseCitation(source)];
+        } catch (err) {
+            console.warn("ToolInfo: could not parse citation starting with:", String(source).trim().slice(0, 60), err);
+            return [];
+        }
+    });
 }
 
 /* ------------------------------------------------------------------ */
@@ -82,15 +92,15 @@ const FORMATS = [
 function Icon({ children }) {
   return (
     <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
     >
       {children}
     </svg>
