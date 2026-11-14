@@ -662,3 +662,68 @@ html, body {
 
 
 
+.zoom-slider {
+    appearance: none;
+    -webkit-appearance: none;
+
+    width: 4px;
+    height: 100%;
+    background: #E2E8F0;
+    border-radius: 999px;
+    cursor: pointer;
+
+    // Chrome, Edge, Safari
+    &::-webkit-slider-thumb {
+        appearance: none;
+        -webkit-appearance: none;
+
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+
+        background: #1687E8;
+        border: 2px solid #FFFFFF;
+
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+
+        cursor: grab;
+        transition: transform 0.15s ease,
+                    box-shadow 0.15s ease;
+
+        &:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 4px rgba(22, 135, 232, 0.12);
+        }
+
+        &:active {
+            cursor: grabbing;
+            transform: scale(1.25);
+        }
+    }
+
+    // Firefox
+    &::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+
+        background: #1687E8;
+        border: 2px solid #FFFFFF;
+
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+
+        cursor: grab;
+    }
+
+    &::-moz-range-track {
+        width: 4px;
+        background: #E2E8F0;
+        border-radius: 999px;
+    }
+
+    &::-moz-range-progress {
+        background: #1687E8;
+        border-radius: 999px;
+    }
+}
+

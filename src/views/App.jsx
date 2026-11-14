@@ -6,6 +6,8 @@ import Home from '../routes/mainpage/home/Home.jsx'
 import Tools from '../routes/mainpage/tools/Tools.jsx'
 import BioPostgreSQL from '../routes/mainpage/tools/BioPostgreSQL.jsx'
 
+import Tracy from '../routes/mainpage/tools/Tracy.jsx'
+import TracyDecompose from '../routes/mainpage/tools/TracyDecompose.jsx'
 
 import VCFtoolkit from '../routes/mainpage/tools/VCFtoolkit.jsx'
 import VCFtoolkitConvert from "../routes/mainpage/tools/VCFtoolkitConvert.jsx";
@@ -76,6 +78,10 @@ function App() {
 						<Route path="tools/bcftools" element={<Bcftools />}> 
 							<Route index element={<BcftoolsStats />} />
 							<Route path="bcftools-stats" element={<BcftoolsStats />} />
+						</Route>
+						<Route path="tools/tracy" element={<Tracy />}> 
+							<Route index element={<TracyDecompose />} />
+							<Route path="tracy-decompose" element={<TracyDecompose />} />
 						</Route>
 					</Route>
 				</Routes>
