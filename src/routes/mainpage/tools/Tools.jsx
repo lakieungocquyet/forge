@@ -474,7 +474,7 @@ function Tools () {
                             }}
                         >
                             Tracy
-                            <span style={{ fontSize:"10px", color: "#B23C12", backgroundColor: "#FFEDE5", borderRadius: "5px", padding: "5px 5px", border: "1px solid #F8D5C6"}}> Available soon </span>
+                            {/* <span style={{ fontSize:"10px", color: "#B23C12", backgroundColor: "#FFEDE5", borderRadius: "5px", padding: "5px 5px", border: "1px solid #F8D5C6"}}> Available soon </span> */}
                         </div>
                         <div
                             style={{
@@ -483,7 +483,7 @@ function Tools () {
                                 color: "#555555",
                             }}
                         >
-                            basecalling, alignment, assembly and deconvolution of Sanger Chromatogram trace files
+                            Basecalling, alignment, assembly and deconvolution of Sanger Chromatogram trace files
                         </div>
                         <div
                             style={{
@@ -527,7 +527,7 @@ function Tools () {
                                 color: "#B23C12",
                                 textDecoration: "none",
                             }}
-                        // onClick={() => {navigate("/tools/samtools")}} 
+                        onClick={() => {navigate("/tools/tracy")}} 
                         onMouseEnter={(e) => {
                             e.currentTarget.style.textDecoration = "underline";
                             e.currentTarget.style.cursor = "pointer";

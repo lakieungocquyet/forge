@@ -26,7 +26,7 @@ const citations = [
 ];
 
 const btnStyle = ({ border = "1px solid #cfcfcf" , backgroundcolor = "#ffffff"} = {}) => ({
-    minWidth: "70px",
+    minWidth: "100px",
     flex: "0 0 calc((100% - 180px) / 10)",
     height: "40px",
     display: "flex",
