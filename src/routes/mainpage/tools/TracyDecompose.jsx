@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import useTracy from '../../../hooks/useTracy.js'
+import useBcftools from '../../../hooks/useBcftools.js';
 import Divider from '../../../components/ui/Divider.jsx';
 import HelpTip from '../../../components/ui/HelpTip.jsx'
 import ExecutionPanel from '../../../components/ui/ExecutionPanel.jsx';
@@ -50,21 +51,12 @@ export async function bgzip(text) {
 }
 
 async function toText(f) {
-  if (typeof f === "string") return f;
-  if (f instanceof Blob) return f.text();
-  return new TextDecoder().decode(f); // Uint8Array
+    if (typeof f === "string") return f;
+    if (f instanceof Blob) return f.text();
+    return new TextDecoder().decode(f); // Uint8Array
 }
 
-/**
- * Chuyển bảng TSV của Tracy (mỗi dòng = 1 mẫu tín hiệu) sang object cho <TraceView data={...} />.
- *
- * Cột: pos peakA peakC peakG peakT basenum primary secondary consensus qual trim
- *  - dòng có basenum = NA là mẫu không có base được gọi
- *  - dòng có basenum là vị trí gọi base => đây chính là basecallPos
- *
- * Trả về dạng "phẳng" (peakA... ở top-level); TraceView tự bọc vào gappedTrace.
- */
-export function parseTracyTsv(text, traceFileName = "") {
+export function parseTracyTsv(text, traceFileName = "", trimOpts = {}) {
     const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
     if (lines.length < 2) throw new Error("TSV is empty");
 
@@ -89,6 +81,7 @@ export function parseTracyTsv(text, traceFileName = "") {
     const basecallQual = [];
     const basecalls = {};
     const consensusArr = [];
+    const trimRaw = [];
 
     for (let r = 1; r < lines.length; r++) {
         const f = lines[r].split("\t");
@@ -100,6 +93,7 @@ export function parseTracyTsv(text, traceFileName = "") {
 
         const basenum = num(f[col.basenum]);
         if (basenum === null) continue;
+        trimRaw.push(col.trim !== undefined ? (f[col.trim] ?? "").trim() : "");
 
         const primary = f[col.primary];
         const secondary = f[col.secondary];
@@ -111,7 +105,46 @@ export function parseTracyTsv(text, traceFileName = "") {
         consensusArr.push(cons && cons !== "NA" ? cons : primary);
     }
 
-    return { traceFileName, peakA, peakC, peakG, peakT, basecallPos, basecallQual, consensus: consensusArr ,basecalls };
+    // Cột trim của tracy: Y = bị trim, N = giữ lại
+    const isTrimVal = (v) => /^(y|yes|true|t|1)$/i.test(v);
+
+    const n = basecallPos.length;
+    let trimmed;
+    if (col.trim !== undefined) {
+        trimmed = trimRaw.map(isTrimVal);
+    } else {
+        const L = Math.min(trimOpts.left || 0, n), R = Math.min(trimOpts.right || 0, n);
+        trimmed = basecallPos.map((_, i) => i < L || i >= n - R);
+    }
+
+    console.log("[trim] source:", col.trim !== undefined ? "column" : "options",
+        "| bases:", n, "| distinct:", [...new Set(trimRaw)],
+        "| trimmed:", trimmed.filter(Boolean).length, "| kept:", trimmed.filter((t) => !t).length);
+
+    return { traceFileName, peakA, peakC, peakG, peakT, basecallPos, basecallQual, consensus: consensusArr, trimmed, basecalls };
+}
+
+function VcfView({ text }) {
+    if (!text) return null;
+    const lines = text.replace(/\s+$/, "").split(/\r?\n/);
+    return (
+        <div style={{ width: "100%", boxSizing: "border-box", border: "1px solid #E2E8F0", borderRadius: 12, padding: 16, background: "#fff" }}>
+            <pre style={{
+                margin: 0, padding: 12, background: "#F1F5F9", borderRadius: 8, overflowX: "auto",
+                fontFamily: "Consolas, monospace", fontSize: 13, lineHeight: "20px", color: "#334155",
+            }}>
+                {lines.map((l, i) => (
+                    <div key={i} style={
+                        l.startsWith("##") ? { color: "#94A3B8" }
+                        : l.startsWith("#") ? { fontWeight: 700, color: "#0C447C" }
+                        : undefined
+                    }>
+                        {l}
+                    </div>
+                ))}
+            </pre>
+        </div>
+    );
 }
 
 const inputBoxStyle = ({ opacity = 1 , backgroundcolor = "#F1F5F9"} = {}) => ({
@@ -130,11 +163,15 @@ const inputBoxStyle = ({ opacity = 1 , backgroundcolor = "#F1F5F9"} = {}) => ({
 export const DECOMPOSE_STAGES = [
     { id: "validate", title: "Input validation" },
     { id: "exec",     title: "Execute idxstats" },
+    { id: "init",     title: "Build tracy index" },
+    { id: "vcf",      title: "Convert BCF to VCF" },
     { id: "collect",  title: "Collect output" },
 ];
 
 function TracyDecompose () {
     const { run, loading, error } = useTracy();
+    const { run: runBcftools } = useBcftools();
+    const [vcfText, setVcfText] = useState("");
     const exec = useExecution(DECOMPOSE_STAGES);
     const [inputFile, setInputFile] = useState(null);
     const [refFastaFile, setRefFastaFile] = useState(null);
@@ -256,6 +293,8 @@ function TracyDecompose () {
         setValidationError("");
         // ---------- Build options ----------
         const opts = [];
+        opts.push("-v")
+        opts.push("-l", "100")
         opts.push("-r", `{${refFile.name}}`)
         opts.push("-o", `/tmp/${inputFile.name}`)
         if (leftChromatogramTrimSize !== "")    opts.push("-q", leftChromatogramTrimSize);
@@ -276,9 +315,6 @@ function TracyDecompose () {
             const [idxFile, idxFileCheck] = await step(
                 "init",
                 async ({ sub }) => {
-                    // if (indexFile) {
-                    //     return sub("Reading provided index file", async () => new File([indexFile], indexFileName));
-                    // }
                     return sub("Generating index with tracy index", async () => {
                         const r1 = await run(["index", "-o", `/tmp/${refFile.name.replace(/\.gz$/, ".fm9")}`, `{${refFile.name}}`], [refFile], [indexFileName, idxFileCheckName]);
                         if (!r1 || r1.code !== 0 || !r1.results[indexFileName])
@@ -295,12 +331,29 @@ function TracyDecompose () {
                     sub("Running tracy decompose", async () => {
                         const r = await run(
                             ["decompose", ...opts, `{${inputFile.name}}`],
-                            [inputFile, refFile, idxFile, idxFileCheck], [`${inputFile.name}.abif`, `${inputFile.name}.align1`, `${inputFile.name}.align2`, `${inputFile.name}.align3`], {forceMode: "ram"}
+                            [inputFile, refFile, idxFile, idxFileCheck], [`${inputFile.name}.abif`, `${inputFile.name}.align1`, `${inputFile.name}.align2`, `${inputFile.name}.align3`, `${inputFile.name}.bcf`], {forceMode: "ram"}
                         );
                         if (!r || r.code !== 0) throw new Error(r?.stderr || error || "decompose failed");
                         return r;
                     }),
                 { running: "Processing input data", done: "Input data processed" }
+            );
+            const bcfName = `${inputFile.name}.bcf`;
+            const vcf = await step(
+                "vcf",
+                async ({ sub }) =>
+                    sub("Running bcftools view", async () => {
+                        const bcf = r2.results[bcfName];
+                        if (!bcf) throw new Error(`Tracy did not produce ${bcfName}`);
+                        const r3 = await runBcftools(
+                            ["view", `{${bcfName}}`],
+                            [new File([bcf], bcfName)],
+                            []
+                        );
+                        if (!r3 || r3.code !== 0) throw new Error(r3?.stderr || "bcftools view failed");
+                        return r3.stdout;
+                    }),
+                { running: "Converting BCF to VCF", done: "VCF ready" }
             );
             // Stage 4: nhiều bước con liên tiếp, mỗi bước giữ thời gian riêng
             await step(
@@ -311,12 +364,18 @@ function TracyDecompose () {
                         const resultFiles = r2.results
                         const items = [];
                         for (const k of [1, 2, 3]) {
-                        const f = resultFiles[`${inputFile.name}.align${k}`];
-                        if (f) items.push({ label: `Align ${k}`, text: await toText(f) });
+                            const f = resultFiles[`${inputFile.name}.align${k}`];
+                            if (f) items.push({ label: `Align ${k}`, text: await toText(f) });
                         }
                         setAlignItems(items);
                         const tsvFile = resultFiles[`${inputFile.name}.abif`]; // đổi đuôi nếu Tracy đặt tên khác
-                        if (tsvFile) setTraceData(parseTracyTsv(await toText(tsvFile), inputFile.name));
+                        if (tsvFile) {
+                            setTraceData(parseTracyTsv(await toText(tsvFile), inputFile.name, {
+                                left: parseInt(leftChromatogramTrimSize, 10) || 0,
+                                right: parseInt(rightChromatogramTrimSize, 10) || 0,
+                            }));
+                        }
+                        setVcfText(vcf);
                     });
                 },
                 { running: "Collecting output", done: "Output ready" }
@@ -632,24 +691,41 @@ function TracyDecompose () {
                             Reference FASTA
                         </span>
                     </span>
-                    <div style={{ display: "flex", gap: 6 }}>
-                        {[["text", "Paste text"], ["file", "Upload file"], ].map(([m, label]) => (
+                    <div 
+                        style={{ 
+                            display: "flex", 
+                            borderRadius: 5,
+                            width: 300,
+                            background: "#d2e2fc",
+                            padding: "3px 3px",
+                            boxSizing: "border-box"
+                        }}
+                    >
+                        {[["text", "Text"], ["file", "Upload file"], ].map(([m, label]) => (
                             <button
                                 key={m}
                                 type="button"
                                 onClick={() => !locked && setRefMode(m)}
                                 style={{
-                                    padding: "4px 12px", fontSize: 13, borderRadius: 5, cursor: "pointer",
-                                    border: "1px solid #CBD5E1",
-                                    background: refMode === m ? "#d2e2fc" : "#fff",
-                                    color: "#000000",
+                                    padding: "4px 12px", 
+                                    fontSize: 12, 
+                                    borderRadius: 5,
+                                    cursor: "pointer",
+                                    background: refMode === m ? "#fff" : "#d2e2fc",
+                                    border: refMode === m ? "1px solid #CBD5E1" : "1px solid #d2e2fc", 
+                                    color: refMode === m  ? "#2563EB" : "#64748B",
                                     display: 'flex',
                                     alignItems: "center",
                                     gap: "5px",
+                                    width: "50%",
+                                    fontWeight: 600,
+                                    fontFamily: 'inherit',
+                                    justifyContent: "center",
+                                    boxSizing: "border-box"
                                 }}
                             >
                                 {m == "file" && (
-                                    <UploadFileIcon/>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="20px" width="20px" fill={refMode === m  ? "#2563EB" : "#64748B"}><path d="M11,16V7.85l-2.6,2.6L7,9l5-5l5,5l-1.4,1.45L13,7.85V16H11ZM6,20q-0.82,0-1.41-0.59T4,18V15H6v3H18V15h2v3q0,0.82-0.59,1.41T18,20H6Z"/></svg>
                                 )}
                                 {label}
                             </button>
@@ -904,6 +980,7 @@ function TracyDecompose () {
             >
                 {traceData && <SangerTraceView data={traceData} />}
                 {alignItems.length > 0 && <AlignmentView items={alignItems} />}
+                {vcfText && <VcfView text={vcfText} />}
             </div>
         </div>
     )

@@ -44,8 +44,24 @@ function normalizeTraceData(res) {
         basecalls: res.basecalls,
         },
     };
-	for (const k of ["basecallQual", "consensus"]) if (k in res) out.gappedTrace[k] = res[k];
+	for (const k of ["basecallQual", "consensus", "trimmed"]) if (k in res) out.gappedTrace[k] = res[k];
     for (const k of ["refchr", "refpos", "refalign", "forward"]) if (k in res) out[k] = res[k];
+    return out;
+}
+function trimRegions(pos, flags, maxX) {
+    const out = [];
+    let i = 0;
+    while (i < flags.length) {
+        if (!flags[i]) { i++; continue; }
+        let j = i;
+        while (j + 1 < flags.length && flags[j + 1]) j++;
+        out.push({
+            s: i === 0 ? 0 : (pos[i - 1] + pos[i]) / 2,
+            e: j === flags.length - 1 ? maxX : (pos[j] + pos[j + 1]) / 2,
+            from: i, to: j,
+        });
+        i = j + 1;
+    }
     return out;
 }
 
@@ -408,6 +424,31 @@ function Viewer({ trace, className }) {
 		const unitsPerBase = (FRAME.x1 - FRAME.x0) / (win.end - win.st);
 		const showLetters = unitsPerBase >= MIN_UNITS_PER_BASE;
 		const COLOR = { A: "green", C: "blue", G: "black", T: "red" };
+		const hatchId = clipId + "-hatch";
+		const regions = gt.trimmed ? trimRegions(d.pos, gt.trimmed, d.maxX) : [];
+		const trimLayer = regions
+			.filter((r) => r.e > win.st && r.s < win.end)
+			.map((r, k) => {
+				const xa = xOf(Math.max(r.s, win.st));
+				const xb = xOf(Math.min(r.e, win.end));
+				return (
+					<g key={"trim" + k} pointerEvents="none">
+						<rect x={xa} y={FRAME.y0 - 5} width={xb - xa - 10} height={FRAME.y1 - FRAME.y0 + 5}
+							fill={`url(#${hatchId})`} />
+						{r.s >= win.st && (
+							<line x1={xa} x2={xa} y1={FRAME.y0 - 5} y2={AXIS_Y} strokeWidth={0} stroke="#94A3B8"/> // Đường line ranh giới chuyển tiếp từ vùng base trimmed sang ko trimmed đầu trace
+						)}
+						{r.e <= win.end && (
+							<line x1={xb} x2={xb} y1={FRAME.y0 - 5} y2={AXIS_Y} strokeWidth={0} stroke="#94A3B8"/> // Đường line ranh giới chuyển tiếp từ vùng base ko trimmed sang trimmed cuối trace
+						)}
+						{xb - xa > 70 && (
+							<text x={(xa + xb) / 2} y={FRAME.y0 + 14} textAnchor="middle" fontSize={12} fill="#64748B">
+								Trimmed ({r.to - r.from + 1} bases)
+							</text>
+						)}
+					</g>
+				);
+			});
 		const ticks = [];
 		for (let i = 0; i < d.pos.length; i++) {
 			const p = d.pos[i];
@@ -421,9 +462,11 @@ function Viewer({ trace, className }) {
 			const { x: colX, w: colW } = colSpan(i);
 			const colTop = CALL_Y - 20;
 			const colH = ALT2_Y + 8 - colTop;
+			const trimmed = !!gt.trimmed?.[i];
 			ticks.push(
 				<g
 					key={i}
+					opacity={trimmed ? 0.4 : 1}
 					onMouseEnter={() => setHoverI(i)}
 					onMouseLeave={() => { setHoverI(null); setTip(null); }}
 					onMouseMove={(e) => setTip({ x: e.clientX, y: e.clientY, base: call.primary, qual: gt.basecallQual?.[i] ?? "", pos: num })}
@@ -487,15 +530,20 @@ function Viewer({ trace, className }) {
 			<>
 				<defs>
 					<clipPath id={clipId}>
-						<rect x={FRAME.x0} y={FRAME.y0 - 5} width={FRAME.x1 - FRAME.x0} height={FRAME.y1 - FRAME.y0 + 5} />
+						<rect x={FRAME.x0} y={FRAME.y0 - 5} width={FRAME.x1 - FRAME.x0 - 10} height={FRAME.y1 - FRAME.y0 + 5} />
 					</clipPath>
+					<pattern id={hatchId} width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+						<rect width="8" height="8" fill="#F1F5F9" opacity="0.7" />
+						<line x1="0" y1="0" x2="0" y2="8" stroke="#CBD5E1" strokeWidth="2" />
+					</pattern>
 				</defs>
-
-				<g clipPath={`url(#${clipId})`}>{lines}{glow}</g>
-				<rect x={FRAME.x0 - 10} y={CALL_Y - 20} width={FRAME.x1 - (FRAME.x0 - 9)} height={30} rx={5} fill={pickRow == null ? UI.panel : "#ffff"} stroke={UI.border} /> {/* <<< Vùng bo quanh SEQ call từ sanger trace <<< */}
+				{trimLayer}
+				<g clipPath={`url(#${clipId})`}>{lines}{glow}</g> {/* Sanger trace */}
+				{/* <<< Vùng bo quanh SEQ call từ sanger trace <<< */}
+				<rect x={FRAME.x0 - 10} y={CALL_Y - 20} width={FRAME.x1 - (FRAME.x0 - 9)} height={30} rx={5} fill={pickRow == null ? UI.panel : "#ffff"} stroke={UI.border} /> 
 				
 				{/* >>> trục x và trục y của Sanger Trace >>> */}
-				<line x1={FRAME.x0 - 10} y1={AXIS_Y} x2={FRAME.x1 + 10} y2={AXIS_Y} stroke="black" strokeWidth={0.1} strokeLinecap="square" />
+				<line x1={FRAME.x0 - 10} y1={AXIS_Y} x2={FRAME.x1} y2={AXIS_Y} stroke="black" strokeWidth={0.1} strokeLinecap="square" />
 				<line x1={FRAME.x0 - 10} y1={FRAME.y0 - 5 + 10} x2={FRAME.x0 - 10} y2={AXIS_Y} stroke="black" strokeWidth={0.1} strokeLinecap="square" />
 				{/* <<< trục x và trục y của Sanger Trace <<< */}
 				
@@ -622,7 +670,7 @@ function Viewer({ trace, className }) {
 				{CHANNELS.map((ch) => (
 					<Btn 
 						key={ch.base} 
-						active={hi === ch.base} 
+						active={hi === ch.base && !pickRow} 
 						onClick={() => {setPickRow(null); setHi(ch.base)}}
 						style={{
 							color: ch.color
@@ -633,8 +681,8 @@ function Viewer({ trace, className }) {
 				))}
 				<Btn active={hi === null && !pickRow} onClick={() => { setHi(null); setPickRow(null); }}>ACGT</Btn>
 				<span style={{ width: 24 }} />
-				<Btn active={pickRow === "alt1"} onClick={() => setPickRow((r) => (r === "alt1" ? null : "alt1"))}>ALT1</Btn>
-				<Btn active={pickRow === "alt2"} onClick={() => setPickRow((r) => (r === "alt2" ? null : "alt2"))}>ALT2</Btn>
+				<Btn active={pickRow === "alt1"} onClick={() => {setHi(null); setPickRow((r) => (r === "alt1" ? null : "alt1"))}}>ALT1</Btn>
+				<Btn active={pickRow === "alt2"} onClick={() => {setHi(null); setPickRow((r) => (r === "alt2" ? null : "alt2"))}}>ALT2</Btn>
 			</div>
 
 			<div style={{ display: "flex", alignItems: "end", gap: "20px" }}>
