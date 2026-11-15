@@ -6,11 +6,410 @@ import Breadcrumb from "../../../components/ui/Breadcrumb";
 import ExcelIcon from "../../../components/icon/ExcelIcon";
 import CsvIcon from "../../../components/icon/CsvIcon";
 
-function BioPostgreSQL() {
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// ---------- Helpers ----------
+const qi = (name) => `"${String(name).replace(/"/g, '""')}"`; // quote identifier
+const qs = (v) => `'${String(v).replace(/'/g, "''")}'`; // quote string literal
+const isNum = (v) => String(v).trim() !== "" && Number.isFinite(Number(v));
+const splitList = (v) => String(v).split(",").map((x) => x.trim()).filter(Boolean);
+
+const OPERATORS = [
+    { value: "eq", label: "equals (=)" },
+    { value: "ne", label: "not equals (<>)" },
+    { value: "gt", label: "greater than (>)" },
+    { value: "gte", label: "greater or equal (>=)" },
+    { value: "lt", label: "less than (<)" },
+    { value: "lte", label: "less or equal (<=)" },
+    { value: "like", label: "LIKE" },
+    { value: "notlike", label: "NOT LIKE" },
+    { value: "likeany", label: "LIKE ANY of (a, b, c)" },
+    { value: "likeall", label: "LIKE ALL of (a, b, c)" },
+    { value: "likenone", label: "LIKE NONE of (a, b, c)" },
+    { value: "in", label: "is one of (a, b, c)" },
+    { value: "notin", label: "is not one of" },
+    { value: "between", label: "between" },
+    { value: "null", label: "is empty (NULL)" },
+    { value: "notnull", label: "is not empty" },
+];
+
+// How the typed value is wrapped with % before being used in LIKE
+const MATCH_MODES = [
+    { value: "contains", label: "contains  (%value%)" },
+    { value: "starts", label: "starts with  (value%)" },
+    { value: "ends", label: "ends with  (%value)" },
+    { value: "exact", label: "exact text  (value)" },
+    { value: "raw", label: "as typed  (I add % and _ myself)" },
+];
+
+const NO_VALUE_OPS = ["null", "notnull"];
+const LIKE_OPS = ["like", "notlike", "likeany", "likeall", "likenone"];
+const LIST_OPS = ["in", "notin", "likeany", "likeall", "likenone"];
+const AGG_FUNCS = ["COUNT", "SUM", "AVG", "MIN", "MAX"];
+
+const newCondition = (col) => ({
+    id: Math.random(), col, op: "eq", value: "", value2: "",
+    asNumber: false, join: "AND",
+    match: "contains", ignoreCase: true,
+});
+const newAgg = (col) => ({ id: Math.random(), fn: "COUNT", col: col ?? "*" });
+
+// Turn the typed value into a LIKE pattern according to the chosen match mode.
+// Except in "raw" mode, % _ and \ typed by the user are escaped so they are matched literally.
+const toPattern = (value, match) => {
+    if (match === "raw") return String(value);
+    const v = String(value).replace(/[\\%_]/g, "\\$&");
+    if (match === "contains") return `%${v}%`;
+    if (match === "starts") return `${v}%`;
+    if (match === "ends") return `%${v}`;
+    return v; // exact
+};
+
+// ---------- Build SQL from the UI state ----------
+function buildSql(s) {
+    if (!s.table) return "";
+
+    const lit = (c, v) => (c.asNumber && isNum(v) ? String(Number(v)) : qs(v));
+
+    const whereParts = s.conditions
+        .filter((c) => c.col && (NO_VALUE_OPS.includes(c.op) || String(c.value) !== ""))
+        .map((c) => {
+            const col = c.asNumber ? `${qi(c.col)}::numeric` : qi(c.col);
+            const kw = c.ignoreCase ? "ILIKE" : "LIKE";
+            let expr;
+            switch (c.op) {
+                case "eq": expr = `${col} = ${lit(c, c.value)}`; break;
+                case "ne": expr = `${col} <> ${lit(c, c.value)}`; break;
+                case "gt": expr = `${col} > ${lit(c, c.value)}`; break;
+                case "gte": expr = `${col} >= ${lit(c, c.value)}`; break;
+                case "lt": expr = `${col} < ${lit(c, c.value)}`; break;
+                case "lte": expr = `${col} <= ${lit(c, c.value)}`; break;
+                case "like": expr = `${col} ${kw} ${qs(toPattern(c.value, c.match))}`; break;
+                case "notlike": expr = `${col} NOT ${kw} ${qs(toPattern(c.value, c.match))}`; break;
+                case "likeany":
+                case "likeall":
+                case "likenone": {
+                    const items = splitList(c.value);
+                    if (!items.length) return null;
+                    const arr = `ARRAY[${items.map((x) => qs(toPattern(x, c.match))).join(", ")}]`;
+                    expr =
+                        c.op === "likeany" ? `${col} ${kw} ANY (${arr})`
+                        : c.op === "likeall" ? `${col} ${kw} ALL (${arr})`
+                        : `${col} NOT ${kw} ALL (${arr})`;
+                    break;
+                }
+                case "in":
+                case "notin": {
+                    const items = splitList(c.value);
+                    if (!items.length) return null;
+                    expr = `${col} ${c.op === "in" ? "IN" : "NOT IN"} (${items.map((x) => lit(c, x)).join(", ")})`;
+                    break;
+                }
+                case "between":
+                    if (String(c.value2) === "") return null;
+                    expr = `${col} BETWEEN ${lit(c, c.value)} AND ${lit(c, c.value2)}`;
+                    break;
+                case "null": expr = `${col} IS NULL`; break;
+                case "notnull": expr = `${col} IS NOT NULL`; break;
+                default: return null;
+            }
+            return { expr, join: c.join };
+        })
+        .filter(Boolean);
+
+    const whereSql = whereParts.length
+        ? "WHERE " + whereParts.map((p, i) => (i === 0 ? p.expr : `${p.join} ${p.expr}`)).join("\n  ")
+        : "";
+
+    let selectList;
+    let groupSql = "";
+    let orderCols = [];
+
+    if (s.mode === "summary") {
+        const groupCols = s.groupBy;
+        const aggs = s.aggs.map((a) => {
+            const arg = a.col === "*" ? "*" : a.fn === "COUNT" ? qi(a.col) : `${qi(a.col)}::numeric`;
+            const alias = `${a.fn.toLowerCase()}_${a.col === "*" ? "all" : a.col}`;
+            return { sql: `${a.fn}(${arg}) AS ${qi(alias)}`, alias };
+        });
+        const parts = [...groupCols.map(qi), ...aggs.map((a) => a.sql)];
+        selectList = parts.length ? parts.join(",\n  ") : "COUNT(*) AS \"count_all\"";
+        if (groupCols.length) groupSql = `GROUP BY ${groupCols.map(qi).join(", ")}`;
+        orderCols = [...groupCols, ...aggs.map((a) => a.alias)];
+    } else {
+        selectList = s.columns.length ? s.columns.map(qi).join(", ") : "*";
+    }
+
+    const orderSql = s.orderBy && (s.mode === "rows" || orderCols.includes(s.orderBy))
+        ? `ORDER BY ${qi(s.orderBy)} ${s.orderDir}`
+        : "";
+    const limitSql = isNum(s.limit) && Number(s.limit) > 0 ? `LIMIT ${Math.floor(Number(s.limit))}` : "";
+
+    return [
+        `SELECT ${s.mode === "rows" && s.distinct ? "DISTINCT " : ""}${selectList}`,
+        `FROM ${qi(s.table)}`,
+        whereSql,
+        groupSql,
+        orderSql,
+        limitSql,
+    ].filter(Boolean).join("\n") + ";";
+}
+
+// ---------- Small UI pieces ----------
+const box = { border: "1px solid #cfcfcf", borderRadius: "4px", padding: "6px 8px", fontSize: "14px", background: "#fff", boxSizing: "border-box" };
+const btn = { ...box, cursor: "pointer", padding: "6px 12px" };
+const label = { fontSize: "13px", color: "#555", fontWeight: 500 };
+
+const Hover = ({ children, disabled, style, ...rest }) => (
+    <button
+        {...rest}
+        disabled={disabled}
+        onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.backgroundColor = "#f5f5f5"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#fff"; }}
+        style={{ ...btn, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1, ...style }}
+    >
+        {children}
+    </button>
+);
+
+const ColumnSelect = ({ value, onChange, columns, extra = [], placeholder }) => (
+    <select value={value} onChange={(e) => onChange(e.target.value)} style={box}>
+        {placeholder && <option value="">{placeholder}</option>}
+        {extra.map((x) => <option key={x} value={x}>{x === "*" ? "* (all rows)" : x}</option>)}
+        {columns.map((c) => <option key={c} value={c}>{c}</option>)}
+    </select>
+);
+
+// ---------- Component ----------
+function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled, style }) {
+    const [open, setOpen] = useState(true);
+    const [table, setTable] = useState(activeTable ?? "");
+    const [mode, setMode] = useState("rows"); // "rows" | "summary"
+    const [columns, setColumns] = useState([]);
+    const [distinct, setDistinct] = useState(false);
+    const [conditions, setConditions] = useState([]);
+    const [groupBy, setGroupBy] = useState([]);
+    const [aggs, setAggs] = useState([newAgg("*")]);
+    const [orderBy, setOrderBy] = useState("");
+    const [orderDir, setOrderDir] = useState("ASC");
+    const [limit, setLimit] = useState("");
+
+    const tableInfo = tables.find((t) => t.name === table);
+    const allColumns = useMemo(() => (tableInfo ? ["id", ...tableInfo.columns] : []), [tableInfo]);
+
+    // Follow the table the user is previewing
+    useEffect(() => {
+        if (activeTable) setTable(activeTable);
+    }, [activeTable]);
+
+    // Reset table-specific choices when the table changes or is dropped
+    useEffect(() => {
+        if (table && !tables.some((t) => t.name === table)) setTable(tables[0]?.name ?? "");
+        setColumns([]);
+        setConditions([]);
+        setGroupBy([]);
+        setAggs([newAgg("*")]);
+        setOrderBy("");
+    }, [table, tables.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const sql = useMemo(
+        () => buildSql({ table, mode, columns, distinct, conditions, groupBy, aggs, orderBy, orderDir, limit }),
+        [table, mode, columns, distinct, conditions, groupBy, aggs, orderBy, orderDir, limit]
+    );
+
+    const toggle = (list, setList, c) => setList(list.includes(c) ? list.filter((x) => x !== c) : [...list, c]);
+    const updateCond = (id, patch) => setConditions((cs) => cs.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    const updateAgg = (id, patch) => setAggs((as) => as.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+
+    const orderOptions = mode === "summary"
+        ? [...groupBy, ...aggs.map((a) => `${a.fn.toLowerCase()}_${a.col === "*" ? "all" : a.col}`)]
+        : allColumns;
+
+    const chip = (c, selected, onClick) => (
+        <button
+            key={c}
+            onClick={onClick}
+            style={{
+                ...box,
+                cursor: "pointer",
+                padding: "3px 10px",
+                borderRadius: "999px",
+                fontSize: "13px",
+                background: selected ? "#555" : "#fff",
+                color: selected ? "#fff" : "#333",
+                borderColor: selected ? "#555" : "#cfcfcf",
+            }}
+        >
+            {c}
+        </button>
+    );
+
+    return (
+        <div style={{ border: "1px solid #a6a6a6", borderRadius: "6px", width: "100%", boxSizing: "border-box", ...style }}>
+            <div
+                onClick={() => setOpen(!open)}
+                style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", cursor: "pointer", background: "#f5f5f5", borderRadius: "6px", fontWeight: 500 }}
+            >
+                <span>Query builder</span>
+                <span>{open ? "▾" : "▸"}</span>
+            </div>
+
+            {open && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "14px" }}>
+                    {!tables.length && <span style={{ color: "#999", fontSize: "14px" }}>Import a file first.</span>}
+
+                    {tables.length > 0 && (
+                        <>
+                            {/* 1. Table + mode */}
+                            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}>
+                                <span style={label}>1. Table</span>
+                                <select value={table} onChange={(e) => setTable(e.target.value)} style={box}>
+                                    {tables.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
+                                </select>
+                                {chip("Show rows", mode === "rows", () => setMode("rows"))}
+                                {chip("Group & summarize", mode === "summary", () => setMode("summary"))}
+                            </div>
+
+                            {/* 2. Columns / group + aggregates */}
+                            {mode === "rows" ? (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                    <span style={label}>2. Columns (none selected = all)</span>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                                        {allColumns.map((c) => chip(c, columns.includes(c), () => toggle(columns, setColumns, c)))}
+                                    </div>
+                                    <label style={{ fontSize: "13px", color: "#555" }}>
+                                        <input type="checkbox" checked={distinct} onChange={(e) => setDistinct(e.target.checked)} /> Remove duplicate rows (DISTINCT)
+                                    </label>
+                                </div>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                        <span style={label}>2a. Group by</span>
+                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                                            {allColumns.map((c) => chip(c, groupBy.includes(c), () => toggle(groupBy, setGroupBy, c)))}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                        <span style={label}>2b. Calculate</span>
+                                        {aggs.map((a) => (
+                                            <div key={a.id} style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                                                <select value={a.fn} onChange={(e) => updateAgg(a.id, { fn: e.target.value })} style={box}>
+                                                    {AGG_FUNCS.map((f) => <option key={f}>{f}</option>)}
+                                                </select>
+                                                <span style={{ fontSize: "13px" }}>of</span>
+                                                <ColumnSelect
+                                                    value={a.col}
+                                                    onChange={(v) => updateAgg(a.id, { col: v })}
+                                                    columns={allColumns}
+                                                    extra={a.fn === "COUNT" ? ["*"] : []}
+                                                />
+                                                <Hover onClick={() => setAggs(aggs.filter((x) => x.id !== a.id))}>×</Hover>
+                                            </div>
+                                        ))}
+                                        <Hover style={{ width: "fit-content" }} onClick={() => setAggs([...aggs, newAgg("*")])}>+ Add calculation</Hover>
+                                        <span style={{ fontSize: "12px", color: "#888" }}>SUM / AVG / MIN / MAX convert the column to a number (text values will cause an error).</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 3. Filters */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                                <span style={label}>3. Filters</span>
+                                {conditions.map((c, i) => {
+                                    const isLike = LIKE_OPS.includes(c.op);
+                                    return (
+                                        <div key={c.id} style={{ display: "flex", flexDirection: "column", gap: "6px", paddingBottom: "8px", borderBottom: "1px dashed #e2e2e2" }}>
+                                            <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                                                {i === 0 ? (
+                                                    <span style={{ width: "60px", fontSize: "13px", color: "#555" }}>Where</span>
+                                                ) : (
+                                                    <select value={c.join} onChange={(e) => updateCond(c.id, { join: e.target.value })} style={{ ...box, width: "60px" }}>
+                                                        <option>AND</option>
+                                                        <option>OR</option>
+                                                    </select>
+                                                )}
+                                                <ColumnSelect value={c.col} onChange={(v) => updateCond(c.id, { col: v })} columns={allColumns} />
+                                                <select value={c.op} onChange={(e) => updateCond(c.id, { op: e.target.value })} style={box}>
+                                                    {OPERATORS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                </select>
+                                                {!NO_VALUE_OPS.includes(c.op) && (
+                                                    <input
+                                                        value={c.value}
+                                                        onChange={(e) => updateCond(c.id, { value: e.target.value })}
+                                                        placeholder={LIST_OPS.includes(c.op) ? "A, B, C" : "value"}
+                                                        style={{ ...box, width: "200px" }}
+                                                    />
+                                                )}
+                                                {c.op === "between" && (
+                                                    <>
+                                                        <span style={{ fontSize: "13px" }}>and</span>
+                                                        <input value={c.value2} onChange={(e) => updateCond(c.id, { value2: e.target.value })} placeholder="value" style={{ ...box, width: "100px" }} />
+                                                    </>
+                                                )}
+                                                {!NO_VALUE_OPS.includes(c.op) && !isLike && (
+                                                    <label style={{ fontSize: "12px", color: "#555" }} title="All imported columns are TEXT. Tick this to compare as numbers.">
+                                                        <input type="checkbox" checked={c.asNumber} onChange={(e) => updateCond(c.id, { asNumber: e.target.checked })} /> as number
+                                                    </label>
+                                                )}
+                                                <Hover onClick={() => setConditions(conditions.filter((x) => x.id !== c.id))}>×</Hover>
+                                            </div>
+
+                                            {/* Extra options only for the LIKE family */}
+                                            {isLike && (
+                                                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", paddingLeft: "66px" }}>
+                                                    <span style={{ fontSize: "13px", color: "#555" }}>Match</span>
+                                                    <select value={c.match} onChange={(e) => updateCond(c.id, { match: e.target.value })} style={box}>
+                                                        {MATCH_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                                    </select>
+                                                    <label style={{ fontSize: "13px", color: "#555" }} title="Tick = ILIKE (ignore upper/lower case). Untick = LIKE (case-sensitive).">
+                                                        <input type="checkbox" checked={c.ignoreCase} onChange={(e) => updateCond(c.id, { ignoreCase: e.target.checked })} /> ignore case
+                                                    </label>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                <Hover style={{ width: "fit-content" }} onClick={() => setConditions([...conditions, newCondition(allColumns[0])])}>+ Add filter</Hover>
+                                {conditions.some((c, i) => i > 0 && c.join === "OR") && conditions.some((c, i) => i > 0 && c.join === "AND") && (
+                                    <span style={{ fontSize: "12px", color: "#b26a00" }}>Mixing AND and OR: AND is evaluated before OR. Edit the SQL by hand to add parentheses.</span>
+                                )}
+                            </div>
+
+                            {/* 4. Sort + limit */}
+                            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                                <span style={label}>4. Sort by</span>
+                                <ColumnSelect value={orderBy} onChange={setOrderBy} columns={orderOptions} placeholder="(none)" />
+                                <select value={orderDir} onChange={(e) => setOrderDir(e.target.value)} style={box}>
+                                    <option value="ASC">ascending</option>
+                                    <option value="DESC">descending</option>
+                                </select>
+                                <span style={label}>Limit</span>
+                                <input value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="all" style={{ ...box, width: "80px" }} />
+                            </div>
+
+                            {/* Generated SQL */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                <span style={label}>Generated SQL</span>
+                                <pre style={{ margin: 0, padding: "10px", background: "#fafafa", border: "1px dashed #d0d0d0", borderRadius: "4px", fontSize: "13px", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                    {sql}
+                                </pre>
+                                <div style={{ display: "flex", gap: "10px" }}>
+                                    <Hover disabled={!sql} onClick={() => onInsert(sql)}>Insert into editor</Hover>
+                                    <Hover disabled={!sql || disabled} onClick={() => onRun(sql)}>Insert &amp; run</Hover>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+function PostgreSQL() {
     const breadcrumbItems = [
         { label: "FORGE Home", path: "/" },
         { label: "Tools", path: "/tools" },
-        { label: "BioPostgreSQL", path: "/tools/biopostgresql" },
+        { label: "PostgreSQL", path: "/tools/postgresql" },
     ];
 
     // --- Database: 1 PGlite dùng chung cho tất cả các bảng ---
@@ -269,12 +668,13 @@ function BioPostgreSQL() {
 
     
     // --- Hàm chạy query tự do ---
-    const handleRunQuery = async () => {
+    const handleRunQuery = async (overrideSql) => {
+        const text = typeof overrideSql === "string" ? overrideSql : sql;
         if (!db) {
             setQueryError("No database. Please import XLSX file first");
             return;
         }
-        if (!sql.trim()) return;
+        if (!text.trim()) return; 
 
         setQueryLoading(true);
         setQueryError("");
@@ -282,7 +682,7 @@ function BioPostgreSQL() {
         setCurrentPage(1);  
 
         try {
-            const result = await db.query(sql);
+            const result = await db.query(text);
             const columns = result.fields?.map((f) => f.name) ?? Object.keys(result.rows[0] ?? {});
             setQueryResult({ columns, rows: result.rows });
         } catch (err) {
@@ -528,7 +928,7 @@ function BioPostgreSQL() {
                     margin: 0,
                 }}
             >
-                BioPostgreSQL
+                PostgreSQL
             </p>
             <p
                 id="pglite_description"
@@ -541,7 +941,7 @@ function BioPostgreSQL() {
                     color: "#555555",
                 }}
             >
-                A tool for managing and querying structured biological data with PostgreSQL
+                A tool for managing and querying structured data with PostgreSQL
             </p>
             <Divider margin="50px" />
 
@@ -583,7 +983,15 @@ function BioPostgreSQL() {
                         backgroundColor: "white"
                     }}
                 >
-                    {loading ? "Loading..." : tables.length ? "Add more files (.xlsx)" : "Import files (.xlsx)"}
+                    {loading ? "Loading..." : tables.length ? (
+                        <span>
+                            Add more files
+                        </span>
+                    ) : (
+                        <span>
+                            Import files
+                        </span>
+                    )}
                 </button>
                 
                 <div 
@@ -899,7 +1307,13 @@ function BioPostgreSQL() {
             {/* --- Khu vực viết query --- */}
             <div style={{ paddingLeft: "50px", paddingRight: "50px", display: "flex", flexDirection: "column", gap: "12px", width: "100%", boxSizing: "border-box" }}>
                 <p style={{ margin: 0, fontSize: "18px", fontWeight: 500 }}>Write SQL query</p>
-
+                <QueryBuilder
+                    tables={tables}
+                    activeTable={activeTable}
+                    disabled={!db}
+                    onInsert={setSql}
+                    onRun={(s) => { setSql(s); handleRunQuery(s); }}
+                />
                 <textarea
                     value={sql}
                     onChange={(e) => setSql(e.target.value)}
@@ -927,7 +1341,7 @@ function BioPostgreSQL() {
                         onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = "#ffffff";
                         }}
-                        onClick={handleRunQuery}
+                        onClick={() => handleRunQuery()}
                         disabled={queryLoading || !db}
                         style={{
                             padding: "10px 20px",
@@ -1138,4 +1552,4 @@ function BioPostgreSQL() {
     );
 }
 
-export default BioPostgreSQL;
+export default PostgreSQL;

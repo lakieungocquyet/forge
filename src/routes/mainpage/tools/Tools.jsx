@@ -190,7 +190,7 @@ function Tools () {
                                 fontWeight: "700",
                             }}
                         >
-                            BioPostgreSQL
+                            PostgreSQL
                         </div>
                         <div
                             style={{
@@ -199,7 +199,7 @@ function Tools () {
                                 color: "#555555",
                             }}
                         >
-                            A tool for managing and querying structured biological data with PostgreSQL
+                            A tool for managing and querying structured data with PostgreSQL
                         </div>
                         <div
                             style={{
@@ -243,7 +243,7 @@ function Tools () {
                                 color: "#B23C12",
                                 textDecoration: "none",
                             }}
-                        onClick={() => {navigate("/tools/biopostgresql")}} 
+                        onClick={() => {navigate("/tools/postgresql")}} 
                         onMouseEnter={(e) => {
                             e.currentTarget.style.textDecoration = "underline";
                             e.currentTarget.style.cursor = "pointer";

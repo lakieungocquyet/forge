@@ -4,7 +4,7 @@ import Main from '../pages/MainPage.jsx'
 import Home from '../routes/mainpage/home/Home.jsx'
 
 import Tools from '../routes/mainpage/tools/Tools.jsx'
-import BioPostgreSQL from '../routes/mainpage/tools/BioPostgreSQL.jsx'
+import PostgreSQL from '../routes/mainpage/tools/PostgreSQL.jsx'
 
 import Tracy from '../routes/mainpage/tools/Tracy.jsx'
 import TracyDecompose from '../routes/mainpage/tools/TracyDecompose.jsx'
@@ -64,7 +64,7 @@ function App() {
 							<Route path="vcftoolkit-convert" element={<VCFtoolkitConvert />}/>
 						</Route>
 
-						<Route path="tools/biopostgresql" element={<BioPostgreSQL />}/>
+						<Route path="tools/postgresql" element={<PostgreSQL />}/>
 
 						<Route path="tools/samtools" element={<Samtools />}>
 							<Route index element={<SamtoolsIdxstats />} />
