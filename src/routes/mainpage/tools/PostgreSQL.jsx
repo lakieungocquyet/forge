@@ -4,14 +4,38 @@ import * as XLSX from "xlsx";
 import Divider from "../../../components/ui/Divider";
 import Breadcrumb from "../../../components/ui/Breadcrumb";
 import ExcelIcon from "../../../components/icon/ExcelIcon";
-import CsvIcon from "../../../components/icon/CsvIcon";
 
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // ---------- Helpers ----------
 const qi = (name) => `"${String(name).replace(/"/g, '""')}"`; // quote identifier
 const qs = (v) => `'${String(v).replace(/'/g, "''")}'`; // quote string literal
 const isNum = (v) => String(v).trim() !== "" && Number.isFinite(Number(v));
-const splitList = (v) => String(v).split(",").map((x) => x.trim()).filter(Boolean);
+// How a list typed/pasted by the user is split into separate values
+const SEPARATORS = [
+    { value: "auto", label: "auto  ( ,  ;  tab  new line )" },
+    { value: "comma", label: "comma  ( , )" },
+    { value: "newline", label: "new line  (one value per line)" },
+    { value: "semicolon", label: "semicolon  ( ; )" },
+    { value: "tab", label: "tab" },
+    { value: "space", label: "space" },
+    { value: "custom", label: "custom text..." },
+];
+const SPLIT_PATTERNS = {
+    auto: /[,;\t\r\n]+/,
+    comma: /,/,
+    newline: /\r?\n/,
+    semicolon: /;/,
+    tab: /\t/,
+    space: /\s+/,
+};
+const splitList = (v, sep = "auto", custom = "") => {
+    const text = String(v);
+    const parts = sep === "custom"
+        ? (custom ? text.split(custom) : [text])
+        : text.split(SPLIT_PATTERNS[sep] ?? SPLIT_PATTERNS.auto);
+    // trim, drop empty items, remove duplicates (keep first occurrence)
+    return [...new Set(parts.map((x) => x.trim()).filter(Boolean))];
+};
 
 const OPERATORS = [
     { value: "eq", label: "equals (=)" },
@@ -50,6 +74,8 @@ const newCondition = (col) => ({
     id: Math.random(), col, op: "eq", value: "", value2: "",
     asNumber: false, join: "AND",
     match: "contains", ignoreCase: true,
+    sep: "auto", sepCustom: "", showMatch: true,
+    matchPos: "end", // where the "matched" column goes: "end" | "start" | "after:<column name>"
 });
 const newAgg = (col) => ({ id: Math.random(), fn: "COUNT", col: col ?? "*" });
 
@@ -76,6 +102,7 @@ function buildSql(s) {
             const col = c.asNumber ? `${qi(c.col)}::numeric` : qi(c.col);
             const kw = c.ignoreCase ? "ILIKE" : "LIKE";
             let expr;
+            let extra = null; // describes an extra "matched" column, if requested
             switch (c.op) {
                 case "eq": expr = `${col} = ${lit(c, c.value)}`; break;
                 case "ne": expr = `${col} <> ${lit(c, c.value)}`; break;
@@ -88,9 +115,13 @@ function buildSql(s) {
                 case "likeany":
                 case "likeall":
                 case "likenone": {
-                    const items = splitList(c.value);
+                    const items = splitList(c.value, c.sep, c.sepCustom);
                     if (!items.length) return null;
                     const arr = `ARRAY[${items.map((x) => qs(toPattern(x, c.match))).join(", ")}]`;
+                    if (c.showMatch && c.op !== "likenone") {
+                        // original values + their LIKE patterns, paired by position
+                        extra = { col: c.col, vals: `ARRAY[${items.map(qs).join(", ")}]`, pats: arr, kw, pos: c.matchPos };
+                    }
                     expr =
                         c.op === "likeany" ? `${col} ${kw} ANY (${arr})`
                         : c.op === "likeall" ? `${col} ${kw} ALL (${arr})`
@@ -99,7 +130,7 @@ function buildSql(s) {
                 }
                 case "in":
                 case "notin": {
-                    const items = splitList(c.value);
+                    const items = splitList(c.value, c.sep, c.sepCustom);
                     if (!items.length) return null;
                     expr = `${col} ${c.op === "in" ? "IN" : "NOT IN"} (${items.map((x) => lit(c, x)).join(", ")})`;
                     break;
@@ -112,13 +143,31 @@ function buildSql(s) {
                 case "notnull": expr = `${col} IS NOT NULL`; break;
                 default: return null;
             }
-            return { expr, join: c.join };
+            return { expr, join: c.join, extra };
         })
         .filter(Boolean);
 
     const whereSql = whereParts.length
         ? "WHERE " + whereParts.map((p, i) => (i === 0 ? p.expr : `${p.join} ${p.expr}`)).join("\n  ")
         : "";
+
+    // Extra columns that list which value(s) of the typed list matched each row
+    const usedAliases = new Set();
+    const matchCols = whereParts
+        .filter((p) => p.extra)
+        .map((p) => {
+            const { col, vals, pats, kw, pos } = p.extra;
+            let alias = `matched_${col}`;
+            let n = 2;
+            while (usedAliases.has(alias)) alias = `matched_${col}_${n++}`;
+            usedAliases.add(alias);
+            const subquery = (
+                `(SELECT string_agg(k.v, ', ' ORDER BY k.n)\n` +
+                `   FROM unnest(${vals}, ${pats}) WITH ORDINALITY AS k(v, p, n)\n` +
+                `   WHERE ${qi(s.table)}.${qi(col)} ${kw} k.p) AS ${qi(alias)}`
+            );
+            return { pos: pos || "end", subquery };
+        });
 
     let selectList;
     let groupSql = "";
@@ -136,7 +185,37 @@ function buildSql(s) {
         if (groupCols.length) groupSql = `GROUP BY ${groupCols.map(qi).join(", ")}`;
         orderCols = [...groupCols, ...aggs.map((a) => a.alias)];
     } else {
-        selectList = s.columns.length ? s.columns.map(qi).join(", ") : "*";
+        if (!matchCols.length) {
+            selectList = s.columns.length ? s.columns.map(qi).join(", ") : "*";
+        } else {
+            // Columns that will be shown, in order. "after:<col>" needs an explicit list,
+            // so when no column is picked we expand * into every column of the table.
+            const shown = s.columns.length ? s.columns : s.allColumns;
+            const explicit = s.columns.length > 0 || matchCols.some((m) => m.pos.startsWith("after:"));
+
+            const starts = [];
+            const ends = [];
+            const afters = {}; // column name -> matched columns to place right after it
+            matchCols.forEach((m) => {
+                const target = m.pos.startsWith("after:") ? m.pos.slice(6) : null;
+                if (m.pos === "start") starts.push(m.subquery);
+                else if (target && explicit && shown.includes(target)) (afters[target] = afters[target] || []).push(m.subquery);
+                else ends.push(m.subquery); // "end", or the chosen column is no longer shown
+            });
+
+            // [text, isSubquery] tokens, so plain columns stay on one line and subqueries get their own
+            const tokens = [
+                ...starts.map((x) => [x, true]),
+                ...(explicit
+                    ? shown.flatMap((name) => [[qi(name), false], ...(afters[name] ?? []).map((x) => [x, true])])
+                    : [["*", false]]),
+                ...ends.map((x) => [x, true]),
+            ];
+            selectList = tokens.reduce(
+                (acc, [text, isSub], i) => (i === 0 ? text : acc + (isSub || tokens[i - 1][1] ? ",\n  " : ", ") + text),
+                ""
+            );
+        }
     }
 
     const orderSql = s.orderBy && (s.mode === "rows" || orderCols.includes(s.orderBy))
@@ -180,7 +259,7 @@ const ColumnSelect = ({ value, onChange, columns, extra = [], placeholder }) => 
 );
 
 // ---------- Component ----------
-function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled, style }) {
+function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled }) {
     const [open, setOpen] = useState(true);
     const [table, setTable] = useState(activeTable ?? "");
     const [mode, setMode] = useState("rows"); // "rows" | "summary"
@@ -191,7 +270,7 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled, style })
     const [aggs, setAggs] = useState([newAgg("*")]);
     const [orderBy, setOrderBy] = useState("");
     const [orderDir, setOrderDir] = useState("ASC");
-    const [limit, setLimit] = useState("");
+    const [limit, setLimit] = useState("100");
 
     const tableInfo = tables.find((t) => t.name === table);
     const allColumns = useMemo(() => (tableInfo ? ["id", ...tableInfo.columns] : []), [tableInfo]);
@@ -212,8 +291,8 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled, style })
     }, [table, tables.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const sql = useMemo(
-        () => buildSql({ table, mode, columns, distinct, conditions, groupBy, aggs, orderBy, orderDir, limit }),
-        [table, mode, columns, distinct, conditions, groupBy, aggs, orderBy, orderDir, limit]
+        () => buildSql({ table, mode, columns, allColumns, distinct, conditions, groupBy, aggs, orderBy, orderDir, limit }),
+        [table, mode, columns, allColumns, distinct, conditions, groupBy, aggs, orderBy, orderDir, limit]
     );
 
     const toggle = (list, setList, c) => setList(list.includes(c) ? list.filter((x) => x !== c) : [...list, c]);
@@ -244,7 +323,7 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled, style })
     );
 
     return (
-        <div style={{ border: "1px solid #a6a6a6", borderRadius: "6px", width: "100%", boxSizing: "border-box", ...style }}>
+        <div style={{ border: "1px solid #a6a6a6", borderRadius: "6px", width: "100%", maxWidth: "800px", boxSizing: "border-box" }}>
             <div
                 onClick={() => setOpen(!open)}
                 style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", cursor: "pointer", background: "#f5f5f5", borderRadius: "6px", fontWeight: 500 }}
@@ -331,7 +410,16 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled, style })
                                                 <select value={c.op} onChange={(e) => updateCond(c.id, { op: e.target.value })} style={box}>
                                                     {OPERATORS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                                 </select>
-                                                {!NO_VALUE_OPS.includes(c.op) && (
+                                                {LIST_OPS.includes(c.op) && (
+                                                    <textarea
+                                                        value={c.value}
+                                                        onChange={(e) => updateCond(c.id, { value: e.target.value })}
+                                                        placeholder={"A, B, C\nor paste one value per line"}
+                                                        rows={3}
+                                                        style={{ ...box, width: "260px", fontFamily: "inherit", resize: "vertical" }}
+                                                    />
+                                                )}
+                                                {!NO_VALUE_OPS.includes(c.op) && !LIST_OPS.includes(c.op) && (
                                                     <input
                                                         value={c.value}
                                                         onChange={(e) => updateCond(c.id, { value: e.target.value })}
@@ -353,6 +441,27 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled, style })
                                                 <Hover onClick={() => setConditions(conditions.filter((x) => x.id !== c.id))}>×</Hover>
                                             </div>
 
+                                            {/* Split options for list operators */}
+                                            {LIST_OPS.includes(c.op) && (
+                                                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", paddingLeft: "66px" }}>
+                                                    <span style={{ fontSize: "13px", color: "#555" }}>Split by</span>
+                                                    <select value={c.sep} onChange={(e) => updateCond(c.id, { sep: e.target.value })} style={box}>
+                                                        {SEPARATORS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                                                    </select>
+                                                    {c.sep === "custom" && (
+                                                        <input
+                                                            value={c.sepCustom}
+                                                            onChange={(e) => updateCond(c.id, { sepCustom: e.target.value })}
+                                                            placeholder="e.g. | or ::"
+                                                            style={{ ...box, width: "90px" }}
+                                                        />
+                                                    )}
+                                                    <span style={{ fontSize: "12px", color: "#888" }}>
+                                                        {splitList(c.value, c.sep, c.sepCustom).length} unique value(s)
+                                                    </span>
+                                                </div>
+                                            )}
+
                                             {/* Extra options only for the LIKE family */}
                                             {isLike && (
                                                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", paddingLeft: "66px" }}>
@@ -363,6 +472,23 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled, style })
                                                     <label style={{ fontSize: "13px", color: "#555" }} title="Tick = ILIKE (ignore upper/lower case). Untick = LIKE (case-sensitive).">
                                                         <input type="checkbox" checked={c.ignoreCase} onChange={(e) => updateCond(c.id, { ignoreCase: e.target.checked })} /> ignore case
                                                     </label>
+                                                    {(c.op === "likeany" || c.op === "likeall") && mode === "rows" && (
+                                                        <label style={{ fontSize: "13px", color: "#555" }} title="Adds a column listing which of your values matched each row.">
+                                                            <input type="checkbox" checked={c.showMatch} onChange={(e) => updateCond(c.id, { showMatch: e.target.checked })} /> show matched value(s) in a column
+                                                        </label>
+                                                    )}
+                                                    {(c.op === "likeany" || c.op === "likeall") && mode === "rows" && c.showMatch && (
+                                                        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                            <span style={{ fontSize: "13px", color: "#555" }}>placed</span>
+                                                            <select value={c.matchPos} onChange={(e) => updateCond(c.id, { matchPos: e.target.value })} style={box}>
+                                                                <option value="end">at the end</option>
+                                                                <option value="start">at the start</option>
+                                                                {(columns.length ? columns : allColumns).map((name) => (
+                                                                    <option key={name} value={`after:${name}`}>after "{name}"</option>
+                                                                ))}
+                                                            </select>
+                                                        </span>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
