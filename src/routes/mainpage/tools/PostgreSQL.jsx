@@ -345,7 +345,8 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled }) {
     );
 
     return (
-        <div style={{width: "100%", boxSizing: "border-box", fontFamily: "inherit", display: "flex", alignItems: "start", gap: "25px", flexDirection: "row", }}>
+        <div style={{width: "100%", boxSizing: "border-box", fontFamily: "inherit", display: "flex", alignItems: "end", gap: "25px", flexDirection: "row", }}>
+            {/* Options - Div trái*/}
             <div style={{ display: "flex", flexDirection: "column", backgroundColor: "#F4F6FA", gap: "25px", padding: "25px 25px", border: "1px solid #E2E8F0", borderRadius: "5px", width: "65%"}}>
                 {!tables.length && <span style={{ color: "#999", fontSize: "14px" }}>Import a file first</span>}
                 {tables.length > 0 && (
@@ -883,8 +884,8 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled }) {
                             >
                                 <ColumnSelect value={orderBy} onChange={setOrderBy} columns={orderOptions} placeholder="(none)" />
                                 <select value={orderDir} onChange={(e) => setOrderDir(e.target.value)} style={box}>
-                                    <option value="ASC">ascending</option>
-                                    <option value="DESC">descending</option>
+                                    <option value="ASC">Ascending</option>
+                                    <option value="DESC">Descending</option>
                                 </select>
                                 <span style={{ fontSize: "13px", fontWeight: "500", color: "#555"}}>Limit</span>
                                 <input value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="all" style={{ ...box}} />
@@ -893,35 +894,44 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled }) {
                     </>
                 )}
             </div> 
-            {/* Generated SQL */}
-            <div style={{ display: "flex", boxSizing: "border-box", flexDirection: "column", gap: "15px", border: "1px solid #E2E8F0", width: "35%", padding: "25px 25px", borderRadius: "5px", height: "100%"}}>
-                <span style={{fontSize: "15px", fontWeight: "500", color: "#555"}}>Generated SQL</span>
-                <pre 
-                    style={{ 
-                        lineHeight: "1.2", 
-                        width: "100%",
-                        margin: 0, 
-                        padding: "10px", 
-                        fontFamily: "consolas", 
-                        background: "#fafafa", 
-                        border: "1px dashed #d0d0d0", 
-                        borderRadius: "4px", 
-                        fontSize: "11px", 
-                        whiteSpace: "pre-wrap", 
-                        wordBreak: "break-word",
-                        boxSizing: "border-box",
-                        flex: 1
+            {/* Generated SQL - Div phải - Lớp chính*/}
+            <div style={{ position: "relative", display: "flex", boxSizing: "border-box", flexDirection: "column", gap: "15px", border: "1px solid #E2E8F0", width: "35%", padding: "25px 25px", borderRadius: "5px", height: "100%"}}>
+                {/* Lớp phủ đè lên lớp chính để ko tăng size lớp chính khi tràn chiều cao, mục đích để chỉ cho div bên trái có thể quyết định chiều cao div cha */}
+                <div
+                    style={{
+                        position: "absolute", inset: 0,
+                        display: "flex", boxSizing: "border-box", flexDirection: "column", gap: "15px", padding: "25px 25px"
                     }}
                 >
-                    {sql}
-                </pre>
-                <Hover 
-                    style={{fontSize: "15px", fontWeight: "600", color: "#555", fontFamily: "inherit", width: "100%", height: "40px"}} 
-                    disabled={!sql || disabled} 
-                    onClick={() => onRun(sql)}
-                >
-                    Run query
-                </Hover>
+                    <span style={{fontSize: "15px", fontWeight: "500", color: "#555"}}>Generated SQL</span>
+                    <pre 
+                        style={{ 
+                            lineHeight: "1.2", 
+                            width: "100%",
+                            margin: 0, 
+                            padding: "10px", 
+                            fontFamily: "consolas", 
+                            background: "#fafafa", 
+                            border: "1px dashed #d0d0d0", 
+                            borderRadius: "4px", 
+                            fontSize: "11px", 
+                            whiteSpace: "pre-wrap", 
+                            wordBreak: "break-word",
+                            boxSizing: "border-box",
+                            flex: 1,
+                            overflowY: "auto", scrollbarWidth: "thin"
+                        }}
+                    >
+                        {sql}
+                    </pre>
+                    <Hover 
+                        style={{fontSize: "15px", fontWeight: "600", color: "#555", fontFamily: "inherit", width: "100%", height: "40px"}} 
+                        disabled={!sql || disabled} 
+                        onClick={() => onRun(sql)}
+                    >
+                        Run query
+                    </Hover>
+                </div>
             </div>                                 
         </div>
     );
