@@ -12,13 +12,13 @@ const qs = (v) => `'${String(v).replace(/'/g, "''")}'`; // quote string literal
 const isNum = (v) => String(v).trim() !== "" && Number.isFinite(Number(v));
 // How a list typed/pasted by the user is split into separate values
 const SEPARATORS = [
-    { value: "auto", label: "auto  ( ,  ;  tab  new line )" },
-    { value: "comma", label: "comma  ( , )" },
-    { value: "newline", label: "new line  (one value per line)" },
-    { value: "semicolon", label: "semicolon  ( ; )" },
-    { value: "tab", label: "tab" },
-    { value: "space", label: "space" },
-    { value: "custom", label: "custom text..." },
+    { value: "auto", label: "Auto  ( ,  ;  tab  new line )" },
+    { value: "comma", label: "Comma  ( , )" },
+    { value: "newline", label: "New line  (one value per line)" },
+    { value: "semicolon", label: "Semicolon  ( ; )" },
+    { value: "tab", label: "Tab" },
+    { value: "space", label: "Space" },
+    { value: "custom", label: "Custom text" },
 ];
 const SPLIT_PATTERNS = {
     auto: /[,;\t\r\n]+/,
@@ -38,31 +38,31 @@ const splitList = (v, sep = "auto", custom = "") => {
 };
 
 const OPERATORS = [
-    { value: "eq", label: "equals (=)" },
-    { value: "ne", label: "not equals (<>)" },
-    { value: "gt", label: "greater than (>)" },
-    { value: "gte", label: "greater or equal (>=)" },
-    { value: "lt", label: "less than (<)" },
-    { value: "lte", label: "less or equal (<=)" },
+    { value: "eq", label: "Equals (=)" },
+    { value: "ne", label: "Not equals (<>)" },
+    { value: "gt", label: "Greater than (>)" },
+    { value: "gte", label: "Greater or equal (>=)" },
+    { value: "lt", label: "Less than (<)" },
+    { value: "lte", label: "Less or equal (<=)" },
     { value: "like", label: "LIKE" },
     { value: "notlike", label: "NOT LIKE" },
     { value: "likeany", label: "LIKE ANY of (a, b, c)" },
     { value: "likeall", label: "LIKE ALL of (a, b, c)" },
     { value: "likenone", label: "LIKE NONE of (a, b, c)" },
-    { value: "in", label: "is one of (a, b, c)" },
-    { value: "notin", label: "is not one of" },
-    { value: "between", label: "between" },
-    { value: "null", label: "is empty (NULL)" },
-    { value: "notnull", label: "is not empty" },
+    { value: "in", label: "Is one of (a, b, c)" },
+    { value: "notin", label: "Is not one of" },
+    { value: "between", label: "Between" },
+    { value: "null", label: "Is empty (NULL)" },
+    { value: "notnull", label: "Is not empty" },
 ];
 
 // How the typed value is wrapped with % before being used in LIKE
 const MATCH_MODES = [
-    { value: "contains", label: "contains  (%value%)" },
-    { value: "starts", label: "starts with  (value%)" },
-    { value: "ends", label: "ends with  (%value)" },
-    { value: "exact", label: "exact text  (value)" },
-    { value: "raw", label: "as typed  (I add % and _ myself)" },
+    { value: "contains", label: "Contains  (%value%)" },
+    { value: "starts", label: "Starts with  (value%)" },
+    { value: "ends", label: "Ends with  (%value)" },
+    { value: "exact", label: "Exact text  (value)" },
+    { value: "raw", label: "As typed  (I add % and _ myself)" },
 ];
 
 const NO_VALUE_OPS = ["null", "notnull"];
@@ -236,7 +236,7 @@ function buildSql(s) {
 // ---------- Small UI pieces ----------
 const box = { border: "1px solid #cfcfcf", borderRadius: "4px", padding: "6px 8px", fontSize: "14px", background: "#fff", boxSizing: "border-box" };
 const btn = { ...box, cursor: "pointer", padding: "6px 12px" };
-const label = { fontSize: "13px", color: "#555", fontWeight: 500 };
+const label = { fontSize: "20px", color: "#000000", fontWeight: 600 };
 
 const Hover = ({ children, disabled, style, ...rest }) => (
     <button
@@ -251,7 +251,23 @@ const Hover = ({ children, disabled, style, ...rest }) => (
 );
 
 const ColumnSelect = ({ value, onChange, columns, extra = [], placeholder }) => (
-    <select value={value} onChange={(e) => onChange(e.target.value)} style={box}>
+    <select value={value} onChange={(e) => onChange(e.target.value)} 
+        style={{
+            padding: "5px 10px", 
+            height: "30px",
+            borderRadius: "5px",
+            fontFamily: "inherit", 
+            color: "#555", 
+            fontWeight: "600", 
+            fontSize: "14px", 
+            border: "solid 1px #cfcfcf", 
+            boxSizing: "border-box", 
+            width: "150px", 
+            height: "30px", 
+            textAlign: "start", 
+            cursor: "pointer"
+        }}
+    >
         {placeholder && <option value="">{placeholder}</option>}
         {extra.map((x) => <option key={x} value={x}>{x === "*" ? "* (all rows)" : x}</option>)}
         {columns.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -270,11 +286,16 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled }) {
     const [aggs, setAggs] = useState([newAgg("*")]);
     const [orderBy, setOrderBy] = useState("");
     const [orderDir, setOrderDir] = useState("ASC");
-    const [limit, setLimit] = useState("100");
+    const [limit, setLimit] = useState();
 
     const tableInfo = tables.find((t) => t.name === table);
     const allColumns = useMemo(() => (tableInfo ? ["id", ...tableInfo.columns] : []), [tableInfo]);
+    const [colSearch, setColSearch] = useState("");
 
+    const visibleColumns = useMemo(
+        () => allColumns.filter((n) => n.toLowerCase().includes(colSearch.trim().toLowerCase())),
+        [allColumns, colSearch]
+    );
     // Follow the table the user is previewing
     useEffect(() => {
         if (activeTable) setTable(activeTable);
@@ -284,6 +305,7 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled }) {
     useEffect(() => {
         if (table && !tables.some((t) => t.name === table)) setTable(tables[0]?.name ?? "");
         setColumns([]);
+        setColSearch("");
         setConditions([]);
         setGroupBy([]);
         setAggs([newAgg("*")]);
@@ -323,221 +345,649 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled }) {
     );
 
     return (
-        <div style={{ border: "1px solid #a6a6a6", borderRadius: "6px", width: "100%", maxWidth: "800px", boxSizing: "border-box" }}>
-            <div
-                onClick={() => setOpen(!open)}
-                style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", cursor: "pointer", background: "#f5f5f5", borderRadius: "6px", fontWeight: 500 }}
-            >
-                <span>Query builder</span>
-                <span>{open ? "▾" : "▸"}</span>
-            </div>
-
-            {open && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "14px" }}>
-                    {!tables.length && <span style={{ color: "#999", fontSize: "14px" }}>Import a file first.</span>}
-
-                    {tables.length > 0 && (
-                        <>
-                            {/* 1. Table + mode */}
-                            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}>
-                                <span style={label}>1. Table</span>
-                                <select value={table} onChange={(e) => setTable(e.target.value)} style={box}>
+        <div style={{width: "100%", boxSizing: "border-box", fontFamily: "inherit", display: "flex", alignItems: "start", gap: "25px", flexDirection: "row", }}>
+            <div style={{ display: "flex", flexDirection: "column", backgroundColor: "#F4F6FA", gap: "25px", padding: "25px 25px", border: "1px solid #E2E8F0", borderRadius: "5px", width: "65%"}}>
+                {!tables.length && <span style={{ color: "#999", fontSize: "14px" }}>Import a file first</span>}
+                {tables.length > 0 && (
+                    <>
+                        {/* 1. Table + mode */}
+                        <div 
+                            style={{ 
+                                display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "start", flexDirection: "column",
+                                border: "1px solid #E2E8F0", borderRadius: "5px", padding: "25px 25px", backgroundColor: "#ffff"
+                            }}
+                        >
+                            <span style={label}>Table</span>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 15
+                                }}
+                            >
+                                <select 
+                                    value={table} 
+                                    onChange={(e) => setTable(e.target.value)} 
+                                    style={{
+                                        padding: "5px 10px", 
+                                        fontSize: "14px", 
+                                        border: "solid 1px #cfcfcf",
+                                        width: "200px",
+                                        height: "30px",
+                                        borderRadius: "5px",
+                                        color: "#555",
+                                        fontFamily: "inherit",
+                                    }}
+                                >
                                     {tables.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
                                 </select>
-                                {chip("Show rows", mode === "rows", () => setMode("rows"))}
-                                {chip("Group & summarize", mode === "summary", () => setMode("summary"))}
-                            </div>
+                                {/* <div
+                                    style={{ 
+                                        display: "flex", 
+                                        borderRadius: 5,
+                                        width: 300,
+                                        background: "#d2e2fc",
+                                        padding: "3px 3px",
+                                        boxSizing: "border-box",
+                                        height: 40
+                                    }}
+                                >
+                                    <button
+                                        style={{
+                                            padding: "4px 12px", 
+                                            fontSize: 12, 
+                                            borderRadius: 5,
+                                            cursor: "pointer",
+                                            background: mode === "rows" ? "#fff" : "#d2e2fc",
+                                            border: mode === "rows" ? "1px solid #CBD5E1" : "1px solid #d2e2fc", 
+                                            color: mode === "rows"  ? "#2563EB" : "#64748B",
+                                            display: 'flex',
+                                            alignItems: "center",
+                                            gap: "5px",
+                                            width: "100px",
+                                            fontWeight: 600,
+                                            fontFamily: 'inherit',
+                                            justifyContent: "center",
+                                            boxSizing: "border-box"                                            
+                                        }} 
+                                        onClick={() => setMode("rows")}                                   
+                                    >
+                                        Show rows
+                                    </button>
+                                    <button
+                                        style={{
+                                            padding: "4px 12px", 
+                                            fontSize: 12, 
+                                            borderRadius: 5,
+                                            cursor: "pointer",
+                                            background: mode === "summary" ? "#fff" : "#d2e2fc",
+                                            border: mode === "summary" ? "1px solid #CBD5E1" : "1px solid #d2e2fc", 
+                                            color: mode === "summary"  ? "#2563EB" : "#64748B",
+                                            display: 'flex',
+                                            alignItems: "center",
+                                            gap: "5px",
+                                            width: "200px",
+                                            fontWeight: 600,
+                                            fontFamily: 'inherit',
+                                            justifyContent: "center",
+                                            boxSizing: "border-box"                                            
+                                        }} 
+                                        onClick={() => setMode("summary")}                                   
+                                    >
+                                        Group & summarize
+                                    </button>
 
-                            {/* 2. Columns / group + aggregates */}
-                            {mode === "rows" ? (
-                                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                    <span style={label}>2. Columns (none selected = all)</span>
-                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                        {allColumns.map((c) => chip(c, columns.includes(c), () => toggle(columns, setColumns, c)))}
-                                    </div>
-                                    <label style={{ fontSize: "13px", color: "#555" }}>
+                                </div> */}
+                            </div>
+                        </div>
+                        {/* 2. Columns / group + aggregates */}
+                        {mode === "rows" ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "20px", alignItems: "start", border: "1px solid #E2E8F0", borderRadius: "5px", padding: "25px 25px", backgroundColor: "#ffff"}}>
+                                <span style={label}>Columns</span>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        gap: 15
+                                    }}
+                                >
+                                    <details style={{ position: "relative", width: "300px" }}>
+                                        <summary
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "8px",
+                                                listStyle: "none",
+                                                cursor: "pointer",
+                                                height: "30px",
+                                                padding: "0 12px",
+                                                boxSizing: "border-box",
+                                                fontSize: "14px",
+                                                fontFamily: "inherit",
+                                                color: "#1F2733",
+                                                background: "#fff",
+                                                border: "1px solid #cfcfcf",
+                                                borderRadius: "5px",
+                                            }}
+                                        >
+                                            <span style={{ color: columns.length ? "#1F2733" : "#555" }}>
+                                                {columns.length ? "Selected columns" : "All columns"}
+                                            </span>
+                                            {columns.length > 0 && (
+                                                <span style={{ padding: "1px 8px", borderRadius: "999px", background: "#EEF2FF", color: "#3730A3", fontSize: "12px", fontWeight: 600 }}>
+                                                    {columns.length}
+                                                </span>
+                                            )}
+                                            <svg style={{ marginLeft: "auto" }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6472" strokeWidth="2" strokeLinecap="round">
+                                                <path d="M6 9l6 6 6-6" />
+                                            </svg>
+                                        </summary>
+
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                zIndex: 10,
+                                                top: "calc(100% + 8px)",
+                                                left: 0,
+                                                width: "300px",
+                                                boxSizing: "border-box",
+                                                background: "#fff",
+                                                border: "1px solid #E2E8F0",
+                                                borderRadius: "12px",
+                                                padding: "12px",
+                                                boxShadow: "0 12px 32px rgba(15,23,42,0.14)",
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: "10px",
+                                            }}
+                                        >
+                                            {/* Search */}
+                                            <div style={{ position: "relative" }}>
+                                                <svg style={{ position: "absolute", left: 10, top: 11 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6472" strokeWidth="2" strokeLinecap="round">
+                                                    <circle cx="11" cy="11" r="7" />
+                                                    <path d="M20 20l-3.5-3.5" />
+                                                </svg>
+                                                <input
+                                                    value={colSearch}
+                                                    onChange={(e) => setColSearch(e.target.value)}
+                                                    placeholder="Search columns…"
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "38px",
+                                                        boxSizing: "border-box",
+                                                        padding: "0 12px 0 34px",
+                                                        fontSize: "14px",
+                                                        fontFamily: "inherit",
+                                                        border: "1px solid #D5DAE3",
+                                                        borderRadius: "8px",
+                                                        outline: "none",
+                                                    }}
+                                                />
+                                            </div>
+
+                                            {/* Counter + actions */}
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "13px" }}>
+                                                <span style={{ color: "#5B6472" }}>
+                                                    {columns.length} / {allColumns.length} selected
+                                                </span>
+                                                <div style={{ display: "flex", gap: "14px" }}>
+                                                    <button
+                                                        onClick={() => setColumns(allColumns)}
+                                                        style={{ border: "none", background: "none", padding: 0, cursor: "pointer", color: "#4338CA", fontWeight: 600, fontFamily: "inherit", fontSize: "13px" }}
+                                                    >
+                                                        Select all
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setColumns([])}
+                                                        style={{ border: "none", background: "none", padding: 0, cursor: "pointer", color: "#5B6472", fontWeight: 600, fontFamily: "inherit", fontSize: "13px" }}
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <Divider />
+
+                                            {/* Column list */}
+                                            <div style={{ maxHeight: "240px", overflowY: "auto", scrollbarWidth: "thin", display: "flex", flexDirection: "column", gap: "2px" }}>
+                                                {visibleColumns.length === 0 && (
+                                                    <span style={{ padding: "12px 8px", fontSize: "13px", color: "#5B6472" }}>No matching columns</span>
+                                                )}
+                                                {visibleColumns.map((name) => {
+                                                    const checked = columns.includes(name);
+                                                    return (
+                                                        <label
+                                                            key={name}
+                                                            style={{
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                gap: "10px",
+                                                                padding: "8px 10px",
+                                                                borderRadius: "8px",
+                                                                fontSize: "14px",
+                                                                cursor: "pointer",
+                                                                color: "#1F2733",
+                                                                fontWeight: checked ? 600 : 400,
+                                                                background: checked ? "#EEF2FF" : "transparent",
+                                                            }}
+                                                            onMouseEnter={(e) => { if (!checked) e.currentTarget.style.background = "#F4F6FA"; }}
+                                                            onMouseLeave={(e) => { e.currentTarget.style.background = checked ? "#EEF2FF" : "transparent"; }}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={checked}
+                                                                onChange={() => toggle(columns, setColumns, name)}
+                                                                style={{ width: 16, height: 16, accentColor: "#4338CA", margin: 0 }}
+                                                            />
+                                                            {name}
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </details>
+                                    <label style={{ fontSize: "13px", color: "#555", display:"flex", flexDirection: "row", alignItems: "center", gap: "5px" }}>
                                         <input type="checkbox" checked={distinct} onChange={(e) => setDistinct(e.target.checked)} /> Remove duplicate rows (DISTINCT)
                                     </label>
                                 </div>
-                            ) : (
-                                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                        <span style={label}>2a. Group by</span>
-                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                            {allColumns.map((c) => chip(c, groupBy.includes(c), () => toggle(groupBy, setGroupBy, c)))}
-                                        </div>
-                                    </div>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                        <span style={label}>2b. Calculate</span>
-                                        {aggs.map((a) => (
-                                            <div key={a.id} style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                                                <select value={a.fn} onChange={(e) => updateAgg(a.id, { fn: e.target.value })} style={box}>
-                                                    {AGG_FUNCS.map((f) => <option key={f}>{f}</option>)}
-                                                </select>
-                                                <span style={{ fontSize: "13px" }}>of</span>
-                                                <ColumnSelect
-                                                    value={a.col}
-                                                    onChange={(v) => updateAgg(a.id, { col: v })}
-                                                    columns={allColumns}
-                                                    extra={a.fn === "COUNT" ? ["*"] : []}
-                                                />
-                                                <Hover onClick={() => setAggs(aggs.filter((x) => x.id !== a.id))}>×</Hover>
-                                            </div>
-                                        ))}
-                                        <Hover style={{ width: "fit-content" }} onClick={() => setAggs([...aggs, newAgg("*")])}>+ Add calculation</Hover>
-                                        <span style={{ fontSize: "12px", color: "#888" }}>SUM / AVG / MIN / MAX convert the column to a number (text values will cause an error).</span>
+                            </div>
+                        ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                    <span style={label}>2a. Group by</span>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                                        {allColumns.map((c) => chip(c, groupBy.includes(c), () => toggle(groupBy, setGroupBy, c)))}
                                     </div>
                                 </div>
-                            )}
-
-                            {/* 3. Filters */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                                <span style={label}>3. Filters</span>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                    <span style={label}>2b. Calculate</span>
+                                    {aggs.map((a) => (
+                                        <div key={a.id} style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                                            <select value={a.fn} onChange={(e) => updateAgg(a.id, { fn: e.target.value })} style={box}>
+                                                {AGG_FUNCS.map((f) => <option key={f}>{f}</option>)}
+                                            </select>
+                                            <span style={{ fontSize: "13px" }}>of</span>
+                                            <ColumnSelect
+                                                value={a.col}
+                                                onChange={(v) => updateAgg(a.id, { col: v })}
+                                                columns={allColumns}
+                                                extra={a.fn === "COUNT" ? ["*"] : []}
+                                            />
+                                            <Hover onClick={() => setAggs(aggs.filter((x) => x.id !== a.id))}>×</Hover>
+                                        </div>
+                                    ))}
+                                    <Hover style={{ width: "fit-content" }} onClick={() => setAggs([...aggs, newAgg("*")])}>+ Add calculation</Hover>
+                                    <span style={{ fontSize: "12px", color: "#888" }}>SUM / AVG / MIN / MAX convert the column to a number (text values will cause an error).</span>
+                                </div>
+                            </div>
+                        )}
+                        {/* 3. Filters */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "20px", alignItems: "start", backgroundColor: "#ffffff", border: "1px solid #E2E8F0", borderRadius: "5px", padding: "25px 25px" }}>
+                            <span style={label}>Filters</span>
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "start", gap: "15px", width: "100%" }}>
                                 {conditions.map((c, i) => {
                                     const isLike = LIKE_OPS.includes(c.op);
                                     return (
-                                        <div key={c.id} style={{ display: "flex", flexDirection: "column", gap: "6px", paddingBottom: "8px", borderBottom: "1px dashed #e2e2e2" }}>
-                                            <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
-                                                {i === 0 ? (
-                                                    <span style={{ width: "60px", fontSize: "13px", color: "#555" }}>Where</span>
-                                                ) : (
-                                                    <select value={c.join} onChange={(e) => updateCond(c.id, { join: e.target.value })} style={{ ...box, width: "60px" }}>
-                                                        <option>AND</option>
-                                                        <option>OR</option>
-                                                    </select>
-                                                )}
-                                                <ColumnSelect value={c.col} onChange={(v) => updateCond(c.id, { col: v })} columns={allColumns} />
-                                                <select value={c.op} onChange={(e) => updateCond(c.id, { op: e.target.value })} style={box}>
-                                                    {OPERATORS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                        <div key={c.id} style={{ boxSizing: "border-box", display: "flex", flexDirection: "row", gap: "20px", border: "1px solid #E2E8F0", borderRadius: "5px", padding: "25px 25px", backgroundColor: "#FBFCFE", paddingBottom: "8px", width: "100%" }}>
+                                            {i === 0 ? (
+                                                <span style={{boxSizing: "border-box", width: "100px", height: "fit-content",fontSize: "13px", color: "#555", textAlign: "center", fontWeight: "600", padding: "5px 5px", borderRadius: "5px", backgroundColor: "#ffffff", border: "1px solid #E2E8F0" }}>WHERE</span>
+                                            ) : (
+                                                <select value={c.join} onChange={(e) => updateCond(c.id, { join: e.target.value })} style={{boxSizing: "border-box", width: "100px", height: "fit-content",fontSize: "13px", color: "#555", textAlign: "center", fontWeight: "600", padding: "5px 5px", borderRadius: "5px", backgroundColor: "#ffffff", border: "1px solid #E2E8F0"}}>
+                                                    <option>AND</option>
+                                                    <option>OR</option>
                                                 </select>
-                                                {LIST_OPS.includes(c.op) && (
-                                                    <textarea
-                                                        value={c.value}
-                                                        onChange={(e) => updateCond(c.id, { value: e.target.value })}
-                                                        placeholder={"A, B, C\nor paste one value per line"}
-                                                        rows={3}
-                                                        style={{ ...box, width: "260px", fontFamily: "inherit", resize: "vertical" }}
-                                                    />
-                                                )}
-                                                {!NO_VALUE_OPS.includes(c.op) && !LIST_OPS.includes(c.op) && (
-                                                    <input
-                                                        value={c.value}
-                                                        onChange={(e) => updateCond(c.id, { value: e.target.value })}
-                                                        placeholder={LIST_OPS.includes(c.op) ? "A, B, C" : "value"}
-                                                        style={{ ...box, width: "200px" }}
-                                                    />
-                                                )}
-                                                {c.op === "between" && (
-                                                    <>
-                                                        <span style={{ fontSize: "13px" }}>and</span>
-                                                        <input value={c.value2} onChange={(e) => updateCond(c.id, { value2: e.target.value })} placeholder="value" style={{ ...box, width: "100px" }} />
-                                                    </>
-                                                )}
-                                                {!NO_VALUE_OPS.includes(c.op) && !isLike && (
-                                                    <label style={{ fontSize: "12px", color: "#555" }} title="All imported columns are TEXT. Tick this to compare as numbers.">
-                                                        <input type="checkbox" checked={c.asNumber} onChange={(e) => updateCond(c.id, { asNumber: e.target.checked })} /> as number
-                                                    </label>
-                                                )}
-                                                <Hover onClick={() => setConditions(conditions.filter((x) => x.id !== c.id))}>×</Hover>
-                                            </div>
-
-                                            {/* Split options for list operators */}
-                                            {LIST_OPS.includes(c.op) && (
-                                                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", paddingLeft: "66px" }}>
-                                                    <span style={{ fontSize: "13px", color: "#555" }}>Split by</span>
-                                                    <select value={c.sep} onChange={(e) => updateCond(c.id, { sep: e.target.value })} style={box}>
-                                                        {SEPARATORS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                                                    </select>
-                                                    {c.sep === "custom" && (
-                                                        <input
-                                                            value={c.sepCustom}
-                                                            onChange={(e) => updateCond(c.id, { sepCustom: e.target.value })}
-                                                            placeholder="e.g. | or ::"
-                                                            style={{ ...box, width: "90px" }}
-                                                        />
-                                                    )}
-                                                    <span style={{ fontSize: "12px", color: "#888" }}>
-                                                        {splitList(c.value, c.sep, c.sepCustom).length} unique value(s)
-                                                    </span>
-                                                </div>
                                             )}
-
-                                            {/* Extra options only for the LIKE family */}
-                                            {isLike && (
-                                                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", paddingLeft: "66px" }}>
-                                                    <span style={{ fontSize: "13px", color: "#555" }}>Match</span>
-                                                    <select value={c.match} onChange={(e) => updateCond(c.id, { match: e.target.value })} style={box}>
-                                                        {MATCH_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                                                    </select>
-                                                    <label style={{ fontSize: "13px", color: "#555" }} title="Tick = ILIKE (ignore upper/lower case). Untick = LIKE (case-sensitive).">
-                                                        <input type="checkbox" checked={c.ignoreCase} onChange={(e) => updateCond(c.id, { ignoreCase: e.target.checked })} /> ignore case
-                                                    </label>
-                                                    {(c.op === "likeany" || c.op === "likeall") && mode === "rows" && (
-                                                        <label style={{ fontSize: "13px", color: "#555" }} title="Adds a column listing which of your values matched each row.">
-                                                            <input type="checkbox" checked={c.showMatch} onChange={(e) => updateCond(c.id, { showMatch: e.target.checked })} /> show matched value(s) in a column
-                                                        </label>
-                                                    )}
-                                                    {(c.op === "likeany" || c.op === "likeall") && mode === "rows" && c.showMatch && (
-                                                        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                                            <span style={{ fontSize: "13px", color: "#555" }}>placed</span>
-                                                            <select value={c.matchPos} onChange={(e) => updateCond(c.id, { matchPos: e.target.value })} style={box}>
-                                                                <option value="end">at the end</option>
-                                                                <option value="start">at the start</option>
-                                                                {(columns.length ? columns : allColumns).map((name) => (
-                                                                    <option key={name} value={`after:${name}`}>after "{name}"</option>
-                                                                ))}
+                                            <div style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap", width: "100%", flexDirection: "column" }}>
+                                                <div
+                                                    style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap", width: "100%", boxSizing: "border-box" }}
+                                                >
+                                                    <ColumnSelect value={c.col} onChange={(v) => updateCond(c.id, { col: v })} columns={allColumns} />
+                                                    <select 
+                                                        value={c.op} 
+                                                        onChange={(e) => updateCond(c.id, { op: e.target.value })} 
+                                                        style={{
+                                                            padding: "5px 10px", 
+                                                            height: "40px",
+                                                            borderRadius: "5px",
+                                                            fontFamily: "inherit", 
+                                                            color: "#555", 
+                                                            fontWeight: "600", 
+                                                            fontSize: "14px", 
+                                                            border: "solid 1px #cfcfcf", 
+                                                            boxSizing: "border-box", 
+                                                            minWidth: "250px", 
+                                                            flex: 1,
+                                                            height: "30px", 
+                                                            textAlign: "start", 
+                                                            cursor: "pointer"
+                                                        }}
+                                                    >
+                                                        {OPERATORS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                    </select>                                                    
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        alignItems: "start",
+                                                        boxSizing: "border-box",
+                                                        width: "100%",
+                                                        gap: "15px"
+                                                    }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            display: "flex",
+                                                            flexDirection: "row",
+                                                            alignItems: "center",
+                                                            boxSizing: "border-box",
+                                                            width: "100%",
+                                                            gap: "15px"
+                                                        }}
+                                                    > 
+                                                        <div
+                                                            style={{
+                                                                display: "flex",
+                                                                flexDirection: "column",
+                                                                alignItems: "start",
+                                                                boxSizing: "border-box",
+                                                                minWidth: "150px",
+                                                                flex: 1,
+                                                                gap: "15px"
+                                                            }}                                                        
+                                                        >
+                                                            {LIST_OPS.includes(c.op) && (
+                                                                <textarea
+                                                                    value={c.value}
+                                                                    onChange={(e) => updateCond(c.id, { value: e.target.value })}
+                                                                    placeholder={"A, B, C\nOr paste one value per line"}
+                                                                    rows={3}
+                                                                    style={{
+                                                                        padding: "5px 5px", boxSizing: "border-box", margin: 0, width: "100%", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box"
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            {!NO_VALUE_OPS.includes(c.op) && !LIST_OPS.includes(c.op) && (
+                                                                <input
+                                                                    value={c.value}
+                                                                    onChange={(e) => updateCond(c.id, { value: e.target.value })}
+                                                                    placeholder={LIST_OPS.includes(c.op) ? "A, B, C" : "value"}
+                                                                    style={{ ...box, width: "100%", height: "30px", fontFamily: "inherit", color: "#555" }}
+                                                                />
+                                                            )}
+                                                            {c.op === "between" && (
+                                                                <>
+                                                                    <span style={{ fontSize: "14px", textAlign: 'center', color: "#555", width: "100%", fontWeight: "500", fontFamily: "inherit" }}>And</span>
+                                                                    <input value={c.value2} onChange={(e) => updateCond(c.id, { value2: e.target.value })} placeholder="value" style={{ ...box, width: "100%", height: "30px", }} />
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        {!NO_VALUE_OPS.includes(c.op) && !isLike && (
+                                                            <label style={{ fontSize: "13px", color: "#555", display: "flex", flexDirection: "row", alignItems: "center", gap: 5 }} title="All imported columns are TEXT. Tick this to compare as numbers.">
+                                                                <input type="checkbox" checked={c.asNumber} onChange={(e) => updateCond(c.id, { asNumber: e.target.checked })} /> as number
+                                                            </label>
+                                                        )}                                                                                                                  
+                                                    </div>                                                   
+                                               
+                                                    {/* Split options for list operators */}
+                                                    {LIST_OPS.includes(c.op) && (
+                                                        <div style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap"}}>
+                                                            <span style={{ fontSize: "14px", color: "#555", width: "50px", fontWeight: "500" }}>Split by</span>
+                                                            <select value={c.sep} onChange={(e) => updateCond(c.id, { sep: e.target.value })} 
+                                                                style={{
+                                                                    padding: "5px 10px", 
+                                                                    height: "40px",
+                                                                    borderRadius: "5px",
+                                                                    fontFamily: "inherit", 
+                                                                    color: "#555", 
+                                                                    fontWeight: "600", 
+                                                                    fontSize: "14px", 
+                                                                    border: "solid 1px #cfcfcf", 
+                                                                    boxSizing: "border-box", 
+                                                                    minWidth: "250px", 
+                                                                    flex: 1,
+                                                                    height: "30px", 
+                                                                    textAlign: "start", 
+                                                                    cursor: "pointer"                                                                    
+                                                                }}
+                                                            >
+                                                                {SEPARATORS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                                                             </select>
-                                                        </span>
+                                                            {c.sep === "custom" && (
+                                                                <input
+                                                                    value={c.sepCustom}
+                                                                    onChange={(e) => updateCond(c.id, { sepCustom: e.target.value })}
+                                                                    placeholder="e.g. | or ::"
+                                                                    style={{ ...box, height: "40px", width: "90px" }}
+                                                                />
+                                                            )}
+                                                            <span style={{ fontSize: "13px", color: "#888" }}>
+                                                                {splitList(c.value, c.sep, c.sepCustom).length} unique value(s)
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Extra options only for the LIKE family */}
+                                                    {isLike && (
+                                                        <div style={{ display: "flex", gap: "15px", flexDirection: 'column', alignItems: "start", flexWrap: "wrap"}}>
+                                                            <div style={{ display: "flex", gap: "15px", flexDirection: 'row', alignItems: "center"}}>
+                                                                <span style={{ fontSize: "14px", color: "#555", width: "50px", fontWeight: "500" }}>Match</span>
+                                                                <select value={c.match} onChange={(e) => updateCond(c.id, { match: e.target.value })} 
+                                                                    style={{
+                                                                        padding: "5px 10px", 
+                                                                        height: "40px",
+                                                                        borderRadius: "5px",
+                                                                        fontFamily: "inherit", 
+                                                                        color: "#555", 
+                                                                        fontWeight: "600", 
+                                                                        fontSize: "14px", 
+                                                                        border: "solid 1px #cfcfcf", 
+                                                                        boxSizing: "border-box", 
+                                                                        minWidth: "250px", 
+                                                                        flex: 1,
+                                                                        height: "30px", 
+                                                                        textAlign: "start", 
+                                                                        cursor: "pointer"                                                                        
+                                                                    }}
+                                                                >
+                                                                    {MATCH_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <label style={{ fontSize: "13px", color: "#555", padding: 0, margin: 0, display: "flex", flexDirection: "row", alignItems: "center", gap: "5px" }} title="Tick = ILIKE (ignore upper/lower case). Untick = LIKE (case-sensitive).">
+                                                                <input type="checkbox" checked={c.ignoreCase} onChange={(e) => updateCond(c.id, { ignoreCase: e.target.checked })}/> Ignore case
+                                                            </label>
+                                                            {(c.op === "likeany" || c.op === "likeall") && mode === "rows" && (
+                                                                <label style={{ fontSize: "13px", color: "#555", padding: 0, margin: 0, display: "flex", flexDirection: "row", alignItems: "center", gap: "5px" }} title="Adds a column listing which of your values matched each row.">
+                                                                    <input type="checkbox" checked={c.showMatch} onChange={(e) => updateCond(c.id, { showMatch: e.target.checked })} /> Show matched value(s) in a column
+                                                                </label>
+                                                            )}
+                                                            {(c.op === "likeany" || c.op === "likeall") && mode === "rows" && c.showMatch && (
+                                                                <span style={{ display: "flex", alignItems: "center", gap: 10}}>
+                                                                    <span style={{ fontSize: "14px", color: "#555", width: "55px", fontWeight: "500" }}>Placed</span>
+                                                                    <select value={c.matchPos} onChange={(e) => updateCond(c.id, { matchPos: e.target.value })} 
+                                                                        style={{
+                                                                            padding: "5px 10px", 
+                                                                            height: "40px",
+                                                                            borderRadius: "5px",
+                                                                            fontFamily: "inherit", 
+                                                                            color: "#555", 
+                                                                            fontWeight: "600", 
+                                                                            fontSize: "14px", 
+                                                                            border: "solid 1px #cfcfcf", 
+                                                                            boxSizing: "border-box", 
+                                                                            minWidth: "250px", 
+                                                                            flex: 1,
+                                                                            height: "30px", 
+                                                                            textAlign: "start", 
+                                                                            cursor: "pointer"                                                                               
+                                                                        }}
+                                                                    >
+                                                                        <option value="end">At the end</option>
+                                                                        <option value="start">At the start</option>
+                                                                        {(columns.length ? columns : allColumns).map((name) => (
+                                                                            <option key={name} value={`after:${name}`}>After "{name}"</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </div>
-                                            )}
+                                            </div>
+                                            <Hover 
+                                                style={{display: "flex", alignItems: "center", fontSize: "20px", fontWeight: "500", color: "#555", fontFamily: "consolas", width: "40px", height: "40px", justifyContent: "center"}} 
+                                                onClick={() => setConditions(conditions.filter((x) => x.id !== c.id))}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 18 18" style={{ flexShrink: 0 }} height="20px" width="20px" fill="#555"><path d="M6.06,15L5,13.94L8.94,10L5,6.06L6.06,5L10,8.94L13.94,5L15,6.06L11.06,10L15,13.94L13.94,15L10,11.06L6.06,15Z"/></svg>
+                                            </Hover>
                                         </div>
                                     );
                                 })}
-                                <Hover style={{ width: "fit-content" }} onClick={() => setConditions([...conditions, newCondition(allColumns[0])])}>+ Add filter</Hover>
+                                <Hover 
+                                    style={{ 
+                                        fontSize: "15px", fontWeight: "600", color: "#555", fontFamily: "inherit", width: "fit-content", height: "40px",
+                                        display: "flex",
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        gap: 5,
+                                        marginLeft: "auto",
+                                        marginRight: "auto"                                        
+                                    }} 
+                                    onClick={() => setConditions([...conditions, newCondition(allColumns[0])])}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 18 18" height="20px" width="20px" fill="#555"><path d="M9.25,10.75H5V9.25H9.25V5h1.5V9.25H15v1.5H10.75V15H9.25V10.75Z"/></svg>
+                                    Add more filter
+                                </Hover>
                                 {conditions.some((c, i) => i > 0 && c.join === "OR") && conditions.some((c, i) => i > 0 && c.join === "AND") && (
                                     <span style={{ fontSize: "12px", color: "#b26a00" }}>Mixing AND and OR: AND is evaluated before OR. Edit the SQL by hand to add parentheses.</span>
                                 )}
                             </div>
-
-                            {/* 4. Sort + limit */}
-                            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-                                <span style={label}>4. Sort by</span>
+                        </div>
+                        {/* 4. Sort + limit */}
+                        <div 
+                            style={{ 
+                                display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "start", flexDirection: "column",
+                                border: "1px solid #E2E8F0", borderRadius: "5px", padding: "25px 25px", backgroundColor: "#ffff" 
+                            }}
+                        >
+                            <span style={label}>Sort by</span>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: "10px"
+                                }}
+                            >
                                 <ColumnSelect value={orderBy} onChange={setOrderBy} columns={orderOptions} placeholder="(none)" />
                                 <select value={orderDir} onChange={(e) => setOrderDir(e.target.value)} style={box}>
                                     <option value="ASC">ascending</option>
                                     <option value="DESC">descending</option>
                                 </select>
-                                <span style={label}>Limit</span>
-                                <input value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="all" style={{ ...box, width: "80px" }} />
+                                <span style={{ fontSize: "13px", fontWeight: "500", color: "#555"}}>Limit</span>
+                                <input value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="all" style={{ ...box}} />
                             </div>
-
-                            {/* Generated SQL */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                <span style={label}>Generated SQL</span>
-                                <pre style={{ margin: 0, padding: "10px", background: "#fafafa", border: "1px dashed #d0d0d0", borderRadius: "4px", fontSize: "13px", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                                    {sql}
-                                </pre>
-                                <div style={{ display: "flex", gap: "10px" }}>
-                                    <Hover disabled={!sql} onClick={() => onInsert(sql)}>Insert into editor</Hover>
-                                    <Hover disabled={!sql || disabled} onClick={() => onRun(sql)}>Insert &amp; run</Hover>
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </div>
-            )}
+                        </div>
+                    </>
+                )}
+            </div> 
+            {/* Generated SQL */}
+            <div style={{ display: "flex", boxSizing: "border-box", flexDirection: "column", gap: "15px", border: "1px solid #E2E8F0", width: "35%", padding: "25px 25px", borderRadius: "5px", height: "100%"}}>
+                <span style={{fontSize: "15px", fontWeight: "500", color: "#555"}}>Generated SQL</span>
+                <pre 
+                    style={{ 
+                        lineHeight: "1.2", 
+                        width: "100%",
+                        margin: 0, 
+                        padding: "10px", 
+                        fontFamily: "consolas", 
+                        background: "#fafafa", 
+                        border: "1px dashed #d0d0d0", 
+                        borderRadius: "4px", 
+                        fontSize: "11px", 
+                        whiteSpace: "pre-wrap", 
+                        wordBreak: "break-word",
+                        boxSizing: "border-box",
+                        flex: 1
+                    }}
+                >
+                    {sql}
+                </pre>
+                <Hover 
+                    style={{fontSize: "15px", fontWeight: "600", color: "#555", fontFamily: "inherit", width: "100%", height: "40px"}} 
+                    disabled={!sql || disabled} 
+                    onClick={() => onRun(sql)}
+                >
+                    Run query
+                </Hover>
+            </div>                                 
         </div>
     );
 }
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// --- Tải bảng về máy: xlsx / csv / tsv ---
+const downloadTable = (columns, rows, format, baseName = "export") => {
+    // Chuẩn hóa ô: null -> "", object/mảng (JSON) -> chuỗi, bigint -> chuỗi
+    const cell = (v) => {
+        if (v === null || v === undefined) return "";
+        if (v instanceof Date) return v;
+        if (typeof v === "bigint") return String(v);
+        if (typeof v === "object") return JSON.stringify(v);
+        return v;
+    };
+
+    // Dùng mảng 2 chiều để giữ đúng thứ tự cột (kể cả cột trùng tên)
+    const aoa = [columns, ...rows.map((r) => columns.map((c) => cell(r[c])))];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const fileName = `${baseName}_${stamp}`;
+
+    if (format === "xlsx") {
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Result");
+        XLSX.writeFile(wb, `${fileName}.xlsx`);
+        return;
+    }
+
+    // csv: phân tách bằng ","  |  tsv: phân tách bằng tab
+    const text = XLSX.utils.sheet_to_csv(ws, { FS: format === "tsv" ? "\t" : "," });
+    // "\uFEFF" (BOM) giúp Excel đọc đúng tiếng Việt / ký tự Unicode
+    const blob = new Blob(["\uFEFF" + text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileName}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+};
+
 function PostgreSQL() {
     const breadcrumbItems = [
         { label: "FORGE Home", path: "/" },
         { label: "Tools", path: "/tools" },
         { label: "PostgreSQL", path: "/tools/postgresql" },
     ];
-
+    const [queryMode, setQueryMode] = useState("sql")
+    const [exportFormat, setExportFormat] = useState("xlsx")
+    const [resultName, setResultName] = useState("query_result");
+    // Tìm các tên bảng (đã import) xuất hiện sau FROM / JOIN trong câu SQL
+    const guessTableNames = (text) => {
+        const known = new Set(tables.map((t) => t.name));
+        const found = [];
+        const re = /\b(?:from|join)\s+(?:"([^"]+)"|([a-zA-Z_][\w$]*))/gi;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            const name = m[1] ?? m[2].toLowerCase();
+            if (known.has(name) && !found.includes(name)) found.push(name);
+        }
+        return found;
+    };
     // --- Database: 1 PGlite dùng chung cho tất cả các bảng ---
     const dbRef = useRef(null);
     const [db, setDb] = useState(null);
@@ -810,6 +1260,8 @@ function PostgreSQL() {
         try {
             const result = await db.query(text);
             const columns = result.fields?.map((f) => f.name) ?? Object.keys(result.rows[0] ?? {});
+            const names = guessTableNames(text);
+            setResultName(names.length ? names.slice(0, 3).join("_").slice(0, 60) : (activeTable ?? "query_result"));
             setQueryResult({ columns, rows: result.rows });
         } catch (err) {
             console.error(err);
@@ -817,6 +1269,10 @@ function PostgreSQL() {
         } finally {
             setQueryLoading(false);
         }
+    };
+    const handleExportResult = (format) => {
+        if (!queryResult) return;
+        downloadTable(queryResult.columns, queryResult.rows, format, `${resultName}_query_result`);
     };
 
     // Cho phép Ctrl+Enter / Cmd+Enter để chạy query nhanh
@@ -1432,61 +1888,190 @@ function PostgreSQL() {
 
             {/* --- Khu vực viết query --- */}
             <div style={{ paddingLeft: "50px", paddingRight: "50px", display: "flex", flexDirection: "column", gap: "12px", width: "100%", boxSizing: "border-box" }}>
-                <p style={{ margin: 0, fontSize: "18px", fontWeight: 500 }}>Write SQL query</p>
-                <QueryBuilder
-                    tables={tables}
-                    activeTable={activeTable}
-                    disabled={!db}
-                    onInsert={setSql}
-                    onRun={(s) => { setSql(s); handleRunQuery(s); }}
-                />
-                <textarea
-                    value={sql}
-                    onChange={(e) => setSql(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    rows={6}
-                    placeholder="SELECT * FROM imported_data;"
-                    style={{
-                        width: "100%",
-                        maxWidth: "800px",
-                        fontFamily: "monospace",
-                        fontSize: "14px",
-                        padding: "10px",
-                        boxSizing: "border-box",
-                        border: "1px solid #ccc",
-                        borderRadius: "4px",
-                        resize: "vertical",
+                <p style={{ margin: 0, fontSize: "18px", fontWeight: 500 }}>SQL query</p>
+                <div 
+                    style={{ 
+                        display: "flex", 
+                        borderRadius: 5,
+                        width: 300,
+                        background: "#d2e2fc",
+                        padding: "3px 3px",
+                        boxSizing: "border-box"
                     }}
-                />
-
-                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                    <button
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#f5f5f5";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "#ffffff";
-                        }}
-                        onClick={() => handleRunQuery()}
-                        disabled={queryLoading || !db}
-                        style={{
-                            padding: "10px 20px",
-                            textAlign: "center",
-                            fontSize: "15px",
-                            transition: "transform 0.15s ease",
-                            cursor: queryLoading || !db ? "not-allowed" : "pointer",
-                            width: "fit-content",
-                            border: "solid 1px #cfcfcf",
-                            backgroundColor: "white"
-                        }}
-                    >
-                        {queryLoading ? "Running..." : "Run query (Ctrl+Enter)"}
-                    </button>
-                    {!db && <span style={{ color: "#999", fontSize: "14px" }}>Import data first</span>}
+                >
+                    {[["sql", "SQL"], ["query_builder", "Query builder"], ].map(([m, label]) => (
+                        <button
+                            key={m}
+                            type="button"
+                            onClick={() => setQueryMode(m)}
+                            style={{
+                                padding: "4px 12px", 
+                                fontSize: 14, 
+                                borderRadius: 5,
+                                cursor: "pointer",
+                                background: queryMode === m ? "#fff" : "#d2e2fc",
+                                border: queryMode === m ? "1px solid #CBD5E1" : "1px solid #d2e2fc", 
+                                color: queryMode === m  ? "#2563EB" : "#64748B",
+                                display: 'flex',
+                                alignItems: "center",
+                                gap: "5px",
+                                width: "50%",
+                                fontWeight: 600,
+                                fontFamily: 'inherit',
+                                justifyContent: "center",
+                                boxSizing: "border-box"
+                            }}
+                        >
+                            {label}
+                        </button>
+                    ))}
                 </div>
+                {queryMode === "query_builder" && (
+                    <QueryBuilder
+                        tables={tables}
+                        activeTable={activeTable}
+                        disabled={!db}
+                        onInsert={setSql}
+                        onRun={(s) => { setSql(s); handleRunQuery(s); }}
+                    />
+                )}
+                {queryMode === "sql" && (
+                    <>
+                        <textarea
+                            value={sql}
+                            onChange={(e) => setSql(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            rows={6}
+                            placeholder="SELECT * FROM imported_data;"
+                            style={{
+                                width: "100%",
+                                minWidth: "800px",
+                                fontFamily: "consolas",
+                                fontSize: "14px",
+                                padding: "15px 15px",
+                                boxSizing: "border-box",
+                                border: "1px solid #ccc",
+                                borderRadius: "4px",
+                                resize: "vertical",
+                            }}
+                        />
 
+                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                            <button
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = "#f5f5f5";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = "#ffffff";
+                                }}
+                                onClick={() => handleRunQuery()}
+                                disabled={queryLoading || !db}
+                                style={{
+                                    padding: "10px 20px",
+                                    textAlign: "center",
+                                    fontSize: "15px",
+                                    transition: "transform 0.15s ease",
+                                    cursor: queryLoading || !db ? "not-allowed" : "pointer",
+                                    width: "fit-content",
+                                    border: "solid 1px #cfcfcf",
+                                    backgroundColor: "white"
+                                }}
+                            >
+                                {queryLoading ? "Running..." : "Run query (Ctrl+Enter)"}
+                            </button>
+                            {!db && <span style={{ color: "#999", fontSize: "14px" }}>Import data first</span>}
+                        </div>                    
+                    </>
+                )}       
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    width: "100%",
+                    gap: "20px",
+                }}
+            >
+                <span style={{ width: "50px", height: "1px", background: "#D9DDE3", }} />
+                <span
+                    style={{
+                        fontSize: "20px",
+                        fontWeight: "500",
+                        color: "#000000",
+                        whiteSpace: "nowrap",
+                    }}
+                >
+                    Result
+                </span>
+                <span style={{flex: 1, height: "1px", background: "#D9DDE3",}}/>
+            </div>                         
                 {queryResult ? (
                     <>
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "end",
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                                gap: "10px",
+                            }}                        
+                        >
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "start", gap: "15px" }}>
+                                <span style={{ fontSize: "16px", color: "#555", fontWeight: "600" }}>Export quey result</span>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                        flexWrap: "wrap",
+                                        gap: "15px",
+                                    }}   
+                                >
+                                    <span style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>
+                                        Format
+                                    </span>
+
+                                    <select
+                                        value={exportFormat}
+                                        onChange={(e) => setExportFormat(e.target.value)}
+                                        style={{ padding: "4px 8px", fontFamily: "inherit", color: "#555", fontWeight: "600", fontSize: "13px", border: "solid 1px #cfcfcf", boxSizing: "border-box", width: "80px", height: "30px", textAlign: "center", cursor: "pointer"}}                                    
+                                    >
+                                        <option value={"xlsx"}>XLSX</option>
+                                        <option value={"tsv"}>TSV</option>
+                                        <option value={"csv"}>CSV</option>
+                                    </select>
+                                    <button
+                                        onClick={() => handleExportResult(exportFormat)}
+                                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f5f5f5"; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}       
+                                        style={{
+                                            padding: "4px 12px",
+                                            cursor: "pointer",
+                                            border: "solid 1px #cfcfcf",
+                                            backgroundColor: "#fff",
+                                            width: "90px",
+                                            height: "40px",
+                                            boxSizing: "border-box",
+                                            borderRadius: "10px",
+                                            display: 'flex',
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            gap: "5px"
+                                        }}                                 
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} viewBox="1 1 18 18" height="20px" width="20px" fill="#555"><path d="M10,13L6,9L7.06,7.94l2.19,2.19V3h1.5v7.13l2.19-2.19L14,9l-4,4ZM5.49,16q-0.62,0-1.06-0.44T4,14.5V13H5.5v1.5h9V13H16v1.5q0,0.62-0.44,1.06T14.5,16H5.49Z"/></svg>
+                                        <span
+                                            style={{
+                                                fontWeight: "600",
+                                                color: "#555",
+                                                fontSize: "13px",
+                                            }}
+                                        >
+                                            Export
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <div
                             style={{
                                 display: "flex",
@@ -1499,7 +2084,6 @@ function PostgreSQL() {
                             <span style={{ color: "#555", fontSize: "14px" }}>
                                 {totalRows} rows total
                             </span>
-
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <label style={{ fontSize: "14px", color: "#555" }}>Rows per page:</label>
                                 <select
