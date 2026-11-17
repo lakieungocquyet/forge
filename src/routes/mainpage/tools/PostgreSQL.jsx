@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react"
-import { PGlite as PGliteDB } from "@electric-sql/pglite";
+import { PGliteWorker } from "@electric-sql/pglite/worker";
 import * as XLSX from "xlsx";
 import Divider from "../../../components/ui/Divider";
 import Breadcrumb from "../../../components/ui/Breadcrumb";
@@ -885,9 +885,9 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled }) {
                                 }}
                             >
                                 <ColumnSelect value={orderBy} onChange={setOrderBy} columns={orderOptions} placeholder="(none)" />
-                                <select value={orderDir} onChange={(e) => setOrderDir(e.target.value)} style={box}>
-                                    <option value="ASC">Ascending</option>
-                                    <option value="DESC">Descending</option>
+                                <select value={orderDir} onChange={(e) => setOrderDir(e.target.value)} style={{...box, fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}}>
+                                    <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value="ASC">Ascending</option>
+                                    <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value="DESC">Descending</option>
                                 </select>
                                 <span style={{ fontSize: "13px", fontWeight: "500", color: "#555"}}>Limit</span>
                                 <input value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="all" style={{ ...box}} />
@@ -940,9 +940,25 @@ function QueryBuilder({ tables, activeTable, onInsert, onRun, disabled }) {
 }
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-// --- Tải bảng về máy: xlsx / csv / tsv ---
-const downloadTable = (columns, rows, format, baseName = "export") => {
-    // Chuẩn hóa ô: null -> "", object/mảng (JSON) -> chuỗi, bigint -> chuỗi
+// --- Tên file xuất ---
+const makeDefaultFileName = (base) => {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    const stamp = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+    return `${base}_result_${stamp}`;
+};
+// Bỏ đuôi người dùng lỡ gõ thêm (vd "abc.csv" -> "abc")
+const stripExt = (s) => s.replace(/(\.(xlsx|csv|tsv))+$/i, "");
+// Làm sạch tên rồi ghép đuôi đã chọn
+const cleanFileName = (raw, ext) => {
+    let n = String(raw).replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").trim();
+    n = stripExt(n).replace(/[. ]+$/, "");
+    if (!n) n = "query_result";
+    return `${n.slice(0, 120)}.${ext}`;
+};
+
+// --- Tải bảng về máy: xlsx / csv / tsv (fileName đã gồm đuôi) ---
+const downloadTable = (columns, rows, format, fileName) => {
     const cell = (v) => {
         if (v === null || v === undefined) return "";
         if (v instanceof Date) return v;
@@ -950,29 +966,22 @@ const downloadTable = (columns, rows, format, baseName = "export") => {
         if (typeof v === "object") return JSON.stringify(v);
         return v;
     };
-
-    // Dùng mảng 2 chiều để giữ đúng thứ tự cột (kể cả cột trùng tên)
     const aoa = [columns, ...rows.map((r) => columns.map((c) => cell(r[c])))];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    const fileName = `${baseName}_${stamp}`;
 
     if (format === "xlsx") {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Result");
-        XLSX.writeFile(wb, `${fileName}.xlsx`);
+        XLSX.writeFile(wb, fileName);
         return;
     }
 
-    // csv: phân tách bằng ","  |  tsv: phân tách bằng tab
     const text = XLSX.utils.sheet_to_csv(ws, { FS: format === "tsv" ? "\t" : "," });
-    // "\uFEFF" (BOM) giúp Excel đọc đúng tiếng Việt / ký tự Unicode
     const blob = new Blob(["\uFEFF" + text], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${fileName}.${format}`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -987,7 +996,8 @@ function PostgreSQL() {
     ];
     const [queryMode, setQueryMode] = useState("sql")
     const [exportFormat, setExportFormat] = useState("xlsx")
-    const [resultName, setResultName] = useState("query_result");
+    const [exportName, setExportName] = useState("query_result"); // tên file, chưa có đuôi
+    const [openExportQueryResultPanel, setOpenExportQueryResultPanel] = useState(false)
     // Tìm các tên bảng (đã import) xuất hiện sau FROM / JOIN trong câu SQL
     const guessTableNames = (text) => {
         const known = new Set(tables.map((t) => t.name));
@@ -1012,6 +1022,7 @@ function PostgreSQL() {
     const [toast, setToast] = useState(null); // { message, type: "loading" | "success" | "error" }
 
     const [loadingMessage, setLoadingMessage] = useState("");
+    const [loadingTitle, setLoadingTitle] = useState("Importing data");
     useEffect(() => {
         if (!toast) return;
         const timer = setTimeout(() => setToast(null), toast.type === "error" ? 6000 : 3000);
@@ -1034,6 +1045,8 @@ function PostgreSQL() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
+
+    const [isMoreVertOpen, setIsMoreVertOpen] = useState(false);
     // --- Chuẩn hóa tên cột ---
     const sanitizeColumnName = (name, index) => {
         const cleaned = String(name) // Ép kiểu thành String
@@ -1132,92 +1145,148 @@ function PostgreSQL() {
     };
 
     const handleFileChange = async (e) => {
-        const files = Array.from(e.target.files ?? []);
-        e.target.value = ""; // cho phép chọn lại cùng 1 file
-        if (!files.length) return;
+        // ===== 1. LẤY FILE NGƯỜI DÙNG CHỌN =====
+        // e.target.files là FileList (không phải mảng) -> Array.from để dùng for...of được
+        const selectedFiles = Array.from(e.target.files ?? []);
 
-        setLoading(true);
-        setQueryResult(null);
-        setQueryError("");
-        setCurrentPage(1);
+        // Xóa giá trị của input, nếu không thì chọn lại CÙNG 1 file sẽ không kích hoạt onChange
+        e.target.value = "";
+
+        // Người dùng bấm Cancel, không chọn file nào -> thoát
+        if (!selectedFiles.length) return;
+
+        // ===== 2. RESET GIAO DIỆN TRƯỚC KHI IMPORT =====
+        setLoadingTitle("Importing data");
+        setLoading(true);        // bật overlay "Importing data"
+        setQueryResult(null);    // xóa kết quả query cũ vì dữ liệu sắp đổi
+        setQueryError("");       // xóa lỗi query cũ
+        setCurrentPage(1);       // về trang 1 của bảng kết quả
 
         try {
+            // ===== 3. KHỞI TẠO DATABASE (CHỈ LẦN ĐẦU) =====
             setLoadingMessage("Initializing database...");
-            let database = dbRef.current;
-            if (!database) {
-                database = new PGliteDB();
-                dbRef.current = database;
-                setDb(database);
+
+            // dbRef.current = nơi giữ database giữa các lần render.
+            // pgInstance là biến cục bộ trỏ cùng đối tượng đó, dùng để làm việc ngay trong hàm này.
+            let pgInstance = dbRef.current;
+
+            if (!pgInstance) {
+                // Chưa có DB -> tạo Postgres chạy trong Web Worker (không chặn UI)
+                pgInstance = new PGliteWorker(
+                    new Worker(new URL("../../../services/postgresql/postgresql.worker.js", import.meta.url), { type: "module" }),
+                    { id: crypto.randomUUID() } // id ngẫu nhiên: mỗi tab một DB riêng
+                );
+                await pgInstance.waitReady;  // chờ worker khởi động xong
+
+                dbRef.current = pgInstance;  // lưu vào ref để các hàm khác và các lần import sau dùng lại
+                setDb(pgInstance);           // báo React render lại để các nút hết bị khóa (!db)
             }
 
-            const taken = new Set(tables.map((t) => t.name));
-            const added = [];
-            const skipped = [];
+            // ===== 4. CHUẨN BỊ BIẾN THEO DÕI KẾT QUẢ =====
+            // Tên bảng đã tồn tại, dùng để tránh trùng: gene -> gene_2 -> gene_3
+            const usedTableNames = new Set(tables.map((t) => t.name));
 
-            for (const file of files) {
-                setToast({ message: `Reading ${file.name}...`, type: "loading" });
+            const importedTables = []; // bảng import thành công: { name, columns, rowCount, ext, source }
+            const skippedItems = [];   // file/sheet bị bỏ qua, kèm lý do (để báo cuối hàm)
+
+            // ===== 5. DUYỆT TỪNG FILE =====
+            for (const file of selectedFiles) {
+                setLoadingMessage(`Reading ${file.name}...`);
+
+                // try/catch nằm TRONG vòng lặp: 1 file lỗi không làm hỏng các file còn lại
                 try {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const workbook = XLSX.read(arrayBuffer, { type: "array" });
-                    const baseName = sanitizeTableName(file.name);
-                    const ext = file.name.split(".").pop().toLowerCase();
-                    const multiSheet = workbook.SheetNames.length > 1;
+                    // Đọc file thành dãy byte, rồi để thư viện xlsx phân tích
+                    // (đọc được .xlsx, .xls, .csv, .tsv; CSV được coi như workbook có 1 sheet)
+                    const fileBytes = await file.arrayBuffer();
+                    const workbook = XLSX.read(fileBytes, { type: "array" });
 
+                    const fileBaseName = sanitizeTableName(file.name);        // "Gene List.xlsx" -> "gene_list"
+                    const ext = file.name.split(".").pop().toLowerCase();     // đuôi file, dùng chọn icon
+                    const hasMultipleSheets = workbook.SheetNames.length > 1; // quyết định cách đặt tên bảng
+
+                    // ===== 6. DUYỆT TỪNG SHEET TRONG FILE (mỗi sheet -> 1 bảng) =====
                     for (const sheetName of workbook.SheetNames) {
-                        const sheet = workbook.Sheets[sheetName];
-                        const rows = XLSX.utils.sheet_to_json(sheet, { defval: null });
-                        if (!rows.length) {
-                            skipped.push(`${file.name}${multiSheet ? ` [${sheetName}]` : ""} (empty)`);
+                        const worksheet = workbook.Sheets[sheetName];
+
+                        // Biến sheet thành mảng object: [{ cot1: giaTri, cot2: giaTri }, ...]
+                        // Dòng đầu của sheet được dùng làm tên cột.
+                        // defval: null -> ô trống thành null thay vì bị bỏ khỏi object.
+                        const sheetRows = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+
+                        // Sheet rỗng -> bỏ qua và ghi lại lý do
+                        if (!sheetRows.length) {
+                            skippedItems.push(
+                                `${file.name}${hasMultipleSheets ? ` [${sheetName}]` : ""} (empty)`
+                            );
                             continue;
                         }
 
-                        // 1 sheet -> tên file; nhiều sheet -> tên file + tên sheet
-                        const desired = multiSheet
-                            ? `${baseName}_${sanitizeTableName(sheetName)}`
-                            : baseName;
-                        const tableName = makeUniqueName(desired, taken);
-                        taken.add(tableName);
+                        // Đặt tên bảng:
+                        //   file có 1 sheet      -> tên file            (gene)
+                        //   file có nhiều sheet  -> tên file + tên sheet (report_q1)
+                        const desiredTableName = hasMultipleSheets
+                            ? `${fileBaseName}_${sanitizeTableName(sheetName)}`
+                            : fileBaseName;
 
-                        setToast({ message: `Importing ${rows.length} rows into "${tableName}"...`, type: "loading" });
-                        const info = await importSheet(database, tableName, rows);
-                        added.push({
-                            ...info,
+                        // Nếu trùng thì thêm số đuôi (_2, _3...)
+                        const finalTableName = makeUniqueName(desiredTableName, usedTableNames);
+
+                        // Ghi nhận ngay để sheet/file kế tiếp không đặt trùng tên này
+                        usedTableNames.add(finalTableName);
+
+                        // Tạo bảng trong Postgres và insert dữ liệu (xem hàm importSheet)
+                        setLoadingMessage(`Importing ${sheetRows.length} rows into "${finalTableName}"...`);
+                        const importResult = await importSheet(pgInstance, finalTableName, sheetRows);
+                        // importResult = { name, columns, rowCount }
+
+                        // Gom thông tin bảng (kèm đuôi file và nguồn) để lát nữa đưa vào state `tables`
+                        importedTables.push({
+                            ...importResult,
                             ext,
-                            source: multiSheet ? `${file.name} / ${sheetName}` : file.name,
+                            source: hasMultipleSheets ? `${file.name} / ${sheetName}` : file.name,
                         });
                     }
-                } catch (err) {
-                    console.error(err);
-                    skipped.push(`${file.name} (${err.message})`);
+                } catch (error) {
+                    // File hỏng / sai định dạng / lỗi insert -> ghi lại và đi tiếp file sau
+                    console.error(error);
+                    skippedItems.push(`${file.name} (${error.message})`);
                 }
             }
 
-            if (added.length) {
-                const nextTables = [...tables, ...added];
-                setTables(nextTables);
+            // ===== 7. CẬP NHẬT GIAO DIỆN SAU KHI IMPORT XONG =====
+            if (importedTables.length) {
+                // Nối bảng mới vào CUỐI danh sách (dạng hàm để luôn dựa trên giá trị mới nhất)
+                setTables((prev) => [...prev, ...importedTables]);
 
-                const first = added[0];
-                setActiveTable(first.name);
-                await loadPreview(database, first.name, first.columns);
+                // Chọn bảng đầu tiên vừa import làm bảng đang xem và tải preview
+                const firstImportedTable = importedTables[0];
+                setActiveTable(firstImportedTable.name);
+                await loadPreview(pgInstance, firstImportedTable.name, firstImportedTable.columns);
 
-                // Nếu ô query chưa có nội dung thì gợi ý câu lệnh đầu tiên
-                setSql((prev) => (prev.trim() ? prev : `SELECT * FROM "${first.name}" LIMIT 100;`));
-            }
+                // Ô query đang trống thì gợi ý sẵn 1 câu SQL; đã có nội dung thì giữ nguyên
+                setSql((prev) =>
+                    prev.trim() ? prev : `SELECT * FROM "${firstImportedTable.name}" LIMIT 100;`
+                );
 
-            if (added.length) {
-                let msg = `Imported ${added.length} table${added.length > 1 ? "s" : ""}: ${added.map((t) => `"${t.name}"`).join(", ")}`;
-                if (skipped.length) msg += ` — skipped: ${skipped.join("; ")}`;
-                setToast({ message: msg, type: "success" });
+                // Thông báo thành công, kèm các mục bị bỏ qua (nếu có)
+                let toastMessage = `Imported ${importedTables.length} table${importedTables.length > 1 ? "s" : ""}: ${importedTables.map((t) => `"${t.name}"`).join(", ")}`;
+                if (skippedItems.length) toastMessage += ` — skipped: ${skippedItems.join("; ")}`;
+                setToast({ message: toastMessage, type: "success" });
             } else {
+                // Không bảng nào import được -> báo lỗi
                 setToast({
-                    message: skipped.length ? `No table was imported — ${skipped.join("; ")}` : "No table was imported",
+                    message: skippedItems.length
+                        ? `No table was imported — ${skippedItems.join("; ")}`
+                        : "No table was imported",
                     type: "error",
                 });
             }
-        } catch (err) {
-            console.error(err);
-            setToast({ message: `Import failed: ${err.message}`, type: "error" });
+        } catch (error) {
+            // Lỗi ngoài vòng lặp (ví dụ không khởi tạo được worker/DB)
+            console.error(error);
+            setToast({ message: `Import failed: ${error.message}`, type: "error" });
         } finally {
+            // Dù thành công hay lỗi đều tắt overlay loading
             setLoading(false);
         }
     };
@@ -1257,34 +1326,58 @@ function PostgreSQL() {
     
     // --- Hàm chạy query tự do ---
     const handleRunQuery = async (overrideSql) => {
+        // Nhận SQL từ Query builder (overrideSql) hoặc từ ô textarea (state sql)
         const text = typeof overrideSql === "string" ? overrideSql : sql;
         if (!db) {
+            setToast({ message: "No database. Please import a file first", type: "error" });
             setQueryError("No database. Please import XLSX file first");
             return;
         }
-        if (!text.trim()) return; 
-
-        setQueryLoading(true);
+        if (!text.trim()) {
+            setToast({ message: "Query is empty", type: "error" });
+            return
+        }; 
+        
         setQueryError("");
         setQueryResult(null);
         setCurrentPage(1);  
 
+        // Bật overlay với nội dung phù hợp cho query
+        setLoadingTitle("Running query");
+        setLoadingMessage("Executing SQL...");
+        setQueryLoading(true);
+
+        const startTime = performance.now(); // Đo thời gian query
+
         try {
             const result = await db.query(text);
+            // Ưu tiên lấy tên cột từ fields; nếu thiếu thì lấy từ dòng đầu
             const columns = result.fields?.map((f) => f.name) ?? Object.keys(result.rows[0] ?? {});
+            // Đặt tên cho file export dựa trên các bảng xuất hiện sau FROM/JOIN
             const names = guessTableNames(text);
-            setResultName(names.length ? names.slice(0, 3).join("_").slice(0, 60) : (activeTable ?? "query_result"));
+            setExportName(
+                makeDefaultFileName(names.length ? names.slice(0, 3).join("_").slice(0, 60) : (activeTable ?? "query"))
+            );
+
+            setLoadingMessage(`Rendering ${result.rows.length} rows...`);
             setQueryResult({ columns, rows: result.rows });
+
+            const seconds = ((performance.now() - startTime) / 1000).toFixed(2);
+            setToast({
+                message: `Query OK: ${result.rows.length} row${result.rows.length !== 1 ? "s" : ""} in ${seconds}s`,
+                type: "success",
+            });
         } catch (err) {
             console.error(err);
             setQueryError(err.message);
+            setToast({ message: `Query failed: ${error.message}`, type: "error" });
         } finally {
             setQueryLoading(false);
         }
     };
-    const handleExportResult = (format) => {
+    const handleExportResult = () => {
         if (!queryResult) return;
-        downloadTable(queryResult.columns, queryResult.rows, format, `${resultName}_query_result`);
+        downloadTable(queryResult.columns, queryResult.rows, exportFormat, cleanFileName(exportName, exportFormat));
     };
 
     // Cho phép Ctrl+Enter / Cmd+Enter để chạy query nhanh
@@ -1574,15 +1667,32 @@ function PostgreSQL() {
                         cursor: loading ? "not-allowed" : "pointer",
                         width: "fit-content",
                         border: "solid 1px #cfcfcf",
-                        backgroundColor: "white"
+                        backgroundColor: "white",
+                        fontFamily: "inherit",
+                        fontWeight: "500",
+                        color: "#555"
                     }}
                 >
                     {loading ? "Loading..." : tables.length ? (
-                        <span>
+                        <span
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px"
+                            }}                        
+                        >
+                            <svg viewBox="0 0 24 24" height="22px" width="22px" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M13.5 3H12H8C6.34315 3 5 4.34315 5 6V18C5 19.6569 6.34315 21 8 21H11M13.5 3L19 8.625M13.5 3V7.625C13.5 8.17728 13.9477 8.625 14.5 8.625H19M19 8.625V11.8125" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M17 15V18M17 21V18M17 18H14M17 18H20" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
                             Add more files
                         </span>
                     ) : (
-                        <span>
+                        <span
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px"
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="22px" width="22px" fill="#555"><path d="M11,16V7.85l-2.6,2.6L7,9l5-5l5,5l-1.4,1.45L13,7.85V16H11ZM6,20q-0.82,0-1.41-0.59T4,18V15H6v3H18V15h2v3q0,0.82-0.59,1.41T18,20H6Z"/></svg>
                             Import files
                         </span>
                     )}
@@ -1809,11 +1919,11 @@ function PostgreSQL() {
                                     <span style={{ color: "#555", fontSize: "14px" }}>{previewTotalRows} rows total</span>
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                         <label style={{ fontSize: "14px", color: "#555" }}>Rows per page:</label>
-                                        <select value={previewPageSize} onChange={handlePreviewPageSizeChange} style={{ padding: "4px 8px", fontSize: "14px", border: "solid 1px #cfcfcf", }}>
-                                            <option value={10}>10</option>
-                                            <option value={20}>20</option>
-                                            <option value={50}>50</option>
-                                            <option value={100}>100</option>
+                                        <select value={previewPageSize} onChange={handlePreviewPageSizeChange} style={{ padding: "4px 8px", fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555", border: "solid 1px #cfcfcf", }}>
+                                            <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={10}>10</option>
+                                            <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={20}>20</option>
+                                            <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={50}>50</option>
+                                            <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={100}>100</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1979,17 +2089,12 @@ function PostgreSQL() {
                                 onClick={() => handleRunQuery()}
                                 disabled={queryLoading || !db}
                                 style={{
-                                    padding: "10px 20px",
-                                    textAlign: "center",
-                                    fontSize: "15px",
-                                    transition: "transform 0.15s ease",
-                                    cursor: queryLoading || !db ? "not-allowed" : "pointer",
-                                    width: "fit-content",
-                                    border: "solid 1px #cfcfcf",
-                                    backgroundColor: "white"
-                                }}
+                                    border: "1px solid #cfcfcf", borderRadius: "4px", padding: "6px 8px", fontSize: "14px", background: "#fff", 
+                                    boxSizing: "border-box", fontSize: "15px", fontWeight: "600", 
+                                    color: "#555", fontFamily: "inherit", width: "300px", height: "40px"
+                                }} 
                             >
-                                {queryLoading ? "Running..." : "Run query (Ctrl+Enter)"}
+                                {queryLoading ? "Running..." : "Run query"}
                             </button>
                             {!db && <span style={{ color: "#999", fontSize: "14px" }}>Import data first</span>}
                         </div>                    
@@ -2021,72 +2126,6 @@ function PostgreSQL() {
                         <div
                             style={{
                                 display: "flex",
-                                justifyContent: "end",
-                                alignItems: "center",
-                                flexWrap: "wrap",
-                                gap: "10px",
-                            }}                        
-                        >
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "start", gap: "15px" }}>
-                                <span style={{ fontSize: "16px", color: "#555", fontWeight: "600" }}>Export quey result</span>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                        flexWrap: "wrap",
-                                        gap: "15px",
-                                    }}   
-                                >
-                                    <span style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>
-                                        Format
-                                    </span>
-
-                                    <select
-                                        value={exportFormat}
-                                        onChange={(e) => setExportFormat(e.target.value)}
-                                        style={{ padding: "4px 8px", fontFamily: "inherit", color: "#555", fontWeight: "600", fontSize: "13px", border: "solid 1px #cfcfcf", boxSizing: "border-box", width: "80px", height: "30px", textAlign: "center", cursor: "pointer"}}                                    
-                                    >
-                                        <option value={"xlsx"}>XLSX</option>
-                                        <option value={"tsv"}>TSV</option>
-                                        <option value={"csv"}>CSV</option>
-                                    </select>
-                                    <button
-                                        onClick={() => handleExportResult(exportFormat)}
-                                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f5f5f5"; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}       
-                                        style={{
-                                            padding: "4px 12px",
-                                            cursor: "pointer",
-                                            border: "solid 1px #cfcfcf",
-                                            backgroundColor: "#fff",
-                                            width: "90px",
-                                            height: "40px",
-                                            boxSizing: "border-box",
-                                            borderRadius: "10px",
-                                            display: 'flex',
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: "5px"
-                                        }}                                 
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} viewBox="1 1 18 18" height="20px" width="20px" fill="#555"><path d="M10,13L6,9L7.06,7.94l2.19,2.19V3h1.5v7.13l2.19-2.19L14,9l-4,4ZM5.49,16q-0.62,0-1.06-0.44T4,14.5V13H5.5v1.5h9V13H16v1.5q0,0.62-0.44,1.06T14.5,16H5.49Z"/></svg>
-                                        <span
-                                            style={{
-                                                fontWeight: "600",
-                                                color: "#555",
-                                                fontSize: "13px",
-                                            }}
-                                        >
-                                            Export
-                                        </span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            style={{
-                                display: "flex",
                                 justifyContent: "space-between",
                                 alignItems: "center",
                                 flexWrap: "wrap",
@@ -2096,19 +2135,234 @@ function PostgreSQL() {
                             <span style={{ color: "#555", fontSize: "14px" }}>
                                 {totalRows} rows total
                             </span>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto" }}>
                                 <label style={{ fontSize: "14px", color: "#555" }}>Rows per page:</label>
                                 <select
                                     value={pageSize}
                                     onChange={handlePageSizeChange}
-                                    style={{ padding: "4px 8px", fontSize: "14px", border: "solid 1px #cfcfcf",}}
+                                    style={{ padding: "4px 8px", fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555", border: "solid 1px #cfcfcf",}}
                                 >
-                                    <option value={10}>10</option>
-                                    <option value={20}>20</option>
-                                    <option value={50}>50</option>
-                                    <option value={100}>100</option>
+                                    <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={10}>10</option>
+                                    <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={20}>20</option>
+                                    <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={50}>50</option>
+                                    <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={100}>100</option>
                                 </select>
                             </div>
+                            <div
+                                style={{
+                                    position: "relative",
+                                    height: "100%"
+                                }}
+                            >
+                                <button
+                                    style={{
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        backgroundColor: "#f5f5f5", border: 0, borderRadius: "0px", border: "1px solid #ccc",
+                                        width: "20px", height: "100%", padding: 0,
+                                        cursor: "pointer",
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = "#fff"
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = "#f5f5f5"
+                                    }}
+                                    onClick={() => {
+                                        setIsMoreVertOpen(!isMoreVertOpen)
+                                    }}
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill-rule="evenodd" clip-rule="evenodd" d="M10 11.533c0-.846.687-1.533 1.533-1.533h.934c.846 0 1.533.687 1.533 1.533v.934c0 .846-.687 1.533-1.533 1.533h-.934A1.533 1.533 0 0 1 10 12.467v-.934ZM10 18.533c0-.847.687-1.533 1.533-1.533h.934c.846 0 1.533.686 1.533 1.533v.934c0 .847-.687 1.533-1.533 1.533h-.934A1.533 1.533 0 0 1 10 19.467v-.934ZM10 4.533C10 3.686 10.687 3 11.533 3h.934C13.313 3 14 3.687 14 4.533v.934C14 6.314 13.313 7 12.467 7h-.934A1.533 1.533 0 0 1 10 5.467v-.934Z" fill="#555"></path></g></svg>
+                                </button>
+                                {isMoreVertOpen && (
+                                    <div
+                                        style={{
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            backgroundColor: "#ffffff", border: 0, borderRadius: "5px", border: "1px solid #ccc", boxShadow: "0 12px 32px rgba(15,23,42,0.14)",
+                                            width: "200px", boxSizing: "border-box", padding: "10px 10px",
+                                            position: "absolute", right: "calc(100% - 20px)", top: "30px", zIndex: "10"
+                                        }}                                
+                                    >
+                                        <span
+                                            style={{
+                                                fontFamily: "inherit", fontSize: "13px", fontWeight: "500",
+                                                height: "30px", width: "100%", padding: "5px 15px", boxSizing: "border-box", borderRadius: "5px",
+                                                display: "flex", alignItems: "center", flexDirection: "row", justifyContent: "start", gap: "5px",
+                                                cursor: "pointer"
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = "#e6e6e6"
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = "#fff"
+                                            }}
+                                            onClick={() => (
+                                                setOpenExportQueryResultPanel(!openExportQueryResultPanel)
+                                            )}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} viewBox="1 1 18 18" height="18px" width="18px" fill="#555"><path d="M10,13L6,9L7.06,7.94l2.19,2.19V3h1.5v7.13l2.19-2.19L14,9l-4,4ZM5.49,16q-0.62,0-1.06-0.44T4,14.5V13H5.5v1.5h9V13H16v1.5q0,0.62-0.44,1.06T14.5,16H5.49Z"/></svg>                                    
+                                            Export quey result
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                            {openExportQueryResultPanel &&(
+                                <div
+                                    style={{
+                                        position: "fixed",
+                                        inset: 0,
+                                        zIndex: 2000,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        flexDirection: "column",
+                                        justifyContent: "center",
+                                        background: "#ffffffb3",
+                                        backdropFilter: "blur(0.5px)",
+                                    }}
+                                >
+                                    <div
+                                        role="status"
+                                        aria-live="polite"
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            gap: "20px",
+                                            width: "500px",
+                                            boxSizing: "border-box",
+                                            padding: "25px 25px",
+                                            background: "#fff",
+                                            border: "1px solid #E2E8F0",
+                                            borderRadius: "5px",
+                                            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                                            textAlign: "center",
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                flexDirection: "row",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                                width: "100%"
+                                            }}
+                                        >
+                                            <span style={{ fontSize: "25px", color: "#555", fontWeight: "600" }}>Export quey result</span>                                            
+                                            <button
+                                                onClick={() => (
+                                                    setOpenExportQueryResultPanel(!openExportQueryResultPanel)
+                                                )}   
+                                                style={{
+                                                    marginLeft: "auto",
+                                                    backgroundColor: "transparent", border: "none",
+                                                    display: "flex", cursor: "pointer",
+                                                    flexDirection: "column",
+                                                    alignItems: "center", justifyContent: "center"                                                  
+                                                }}                                                                                 
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 18 18" height="25px" width="25px" fill="#555"><path d="M6.06,15L5,13.94L8.94,10L5,6.06L6.06,5L10,8.94L13.94,5L15,6.06L11.06,10L15,13.94L13.94,15L10,11.06L6.06,15Z"/></svg>
+                                            </button> 
+                                        </div>        
+                                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "15px", width: "100%" }}>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    flexDirection: "row",
+                                                    justifyContent: "space-between",
+                                                    alignItems: "center",
+                                                    flexWrap: "wrap",
+                                                    gap: "15px",
+                                                    width: "100%"
+                                                }}   
+                                            >
+                                                <div
+                                                   style={{
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        justifyContent: "center",
+                                                        alignItems: "start",
+                                                        flexWrap: "wrap",
+                                                        gap: "10px",          
+                                                        flex: 1                                              
+                                                    }}                                                
+                                                >
+                                                    <span style={{ fontSize: "15px", color: "#555", fontWeight: "500" }}>
+                                                        File name
+                                                    </span>
+                                                    <div style={{ display: "flex", alignItems: "stretch", height: "30px", boxSizing: "border-box", border: "solid 1px #cfcfcf", background: "#fff", overflow: "hidden", width: "100%" }}>
+                                                        <input
+                                                            value={exportName}
+                                                            onChange={(e) => setExportName(stripExt(e.target.value))}
+                                                            onKeyDown={(e) => { if (e.key === "Enter") handleExportResult(); }}
+                                                            spellCheck={false}
+                                                            placeholder="query_result"
+                                                            style={{ flex: 1, border: "none", outline: "none", padding: "0 10px", fontSize: "13px", fontFamily: "inherit", color: "#555", boxSizing: "border-box" }}
+                                                        />
+                                                        {/* Đuôi file: chỉ đọc, đổi theo ô Format bên cạnh */}
+                                                        <span style={{ display: "flex", alignItems: "center", padding: "0 10px", background: "#f5f5f5", borderLeft: "solid 1px #cfcfcf", color: "#555", fontSize: "13px", fontWeight: "600" }}>
+                                                            .{exportFormat}
+                                                        </span>
+                                                    </div>                                                    
+                                                </div> 
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        justifyContent: "center",
+                                                        alignItems: "start",
+                                                        flexWrap: "wrap",
+                                                        gap: "10px",                                                        
+                                                    }}
+                                                > 
+                                                    <span style={{ fontSize: "15px", color: "#555", fontWeight: "500" }}>
+                                                        Format
+                                                    </span>
+
+                                                    <select
+                                                        value={exportFormat}
+                                                        onChange={(e) => setExportFormat(e.target.value)}
+                                                        style={{ padding: "4px 8px", fontFamily: "inherit", color: "#555", fontWeight: "600", fontSize: "13px", border: "solid 1px #cfcfcf", boxSizing: "border-box", width: "80px", height: "30px", textAlign: "center", cursor: "pointer"}}                                    
+                                                    >
+                                                        <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={"xlsx"}>XLSX</option>
+                                                        <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={"tsv"}>TSV</option>
+                                                        <option style={{fontFamily:"inherit", fontSize: "13px", fontWeight: "500", color: "#555"}} value={"csv"}>CSV</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleExportResult(exportFormat)}
+                                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f5f5f5"; }}
+                                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}       
+                                                style={{
+                                                    marginLeft: "auto",
+                                                    padding: "4px 12px",
+                                                    cursor: "pointer",
+                                                    border: "solid 1px #cfcfcf",
+                                                    backgroundColor: "#fff",
+                                                    width: "90px",
+                                                    height: "40px",
+                                                    boxSizing: "border-box",
+                                                    borderRadius: "10px",
+                                                    display: 'flex',
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    gap: "5px"
+                                                }}                                 
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} viewBox="1 1 18 18" height="20px" width="20px" fill="#555"><path d="M10,13L6,9L7.06,7.94l2.19,2.19V3h1.5v7.13l2.19-2.19L14,9l-4,4ZM5.49,16q-0.62,0-1.06-0.44T4,14.5V13H5.5v1.5h9V13H16v1.5q0,0.62-0.44,1.06T14.5,16H5.49Z"/></svg>
+                                                <span
+                                                    style={{
+                                                        fontWeight: "600",
+                                                        color: "#555",
+                                                        fontSize: "13px",
+                                                    }}
+                                                >
+                                                    Export
+                                                </span>
+                                            </button>                                            
+                                        </div>                               
+                                    </div>
+                                </div>                                
+                            )}
                         </div>
                         {/* ----- Table ----- */}
                         <div 
@@ -2118,7 +2372,7 @@ function PostgreSQL() {
                                 maxWidth: "calc(100vw - 50px * 2)" 
                             }}
                         >
-                            <table style={{ borderCollapse: "collapse", fontSize: "14px" }}>
+                            <table style={{ borderCollapse: "collapse", fontSize: "14px", minWidth: "100%" }}>
                                 <thead>
                                     <tr>
                                         {queryResult.columns.map((col) => (
@@ -2228,6 +2482,48 @@ function PostgreSQL() {
                     <span style={{ wordBreak: "break-word" }}>{toast.message}</span>
                 </div>
             )}
+            {queryLoading && (
+                <div
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        zIndex: 2000,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(255,255,255,0.7)",
+                        backdropFilter: "blur(2px)",
+                    }}
+                >
+                    <div
+                        role="status"
+                        aria-live="polite"
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "14px",
+                            width: "320px",
+                            boxSizing: "border-box",
+                            padding: "28px 24px",
+                            background: "#fff",
+                            border: "1px solid #cfcfcf",
+                            borderRadius: "8px",
+                            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                            textAlign: "center",
+                        }}
+                    >
+                        <svg width="44" height="44" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9" fill="none" stroke="#e5e5e5" strokeWidth="3" />
+                            <circle cx="12" cy="12" r="9" fill="none" stroke="#555" strokeWidth="3" strokeLinecap="round" strokeDasharray="28 100">
+                                <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite" />
+                            </circle>
+                        </svg>
+                        <p style={{ margin: 0, fontSize: "16px", fontWeight: 500, color: "#333" }}>{loadingTitle}</p>
+                        <p style={{ margin: 0, fontSize: "13px", color: "#777", wordBreak: "break-word" }}>{loadingMessage}</p>
+                    </div>
+                </div>
+            )}
             {loading && (
                 <div
                     style={{
@@ -2265,7 +2561,7 @@ function PostgreSQL() {
                                 <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite" />
                             </circle>
                         </svg>
-                        <p style={{ margin: 0, fontSize: "16px", fontWeight: 500, color: "#333" }}>Importing data</p>
+                        <p style={{ margin: 0, fontSize: "16px", fontWeight: 500, color: "#333" }}>{loadingTitle}</p>
                         <p style={{ margin: 0, fontSize: "13px", color: "#777", wordBreak: "break-word" }}>{loadingMessage}</p>
                     </div>
                 </div>
