@@ -10,6 +10,9 @@ export default defineConfig({
   plugins: [
     react(),
   ],
+  worker: {
+      format: 'es',
+  },
   // base: '/forge-page/',
   base: '/',
 })
