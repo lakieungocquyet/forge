@@ -27,7 +27,21 @@ function Main () {
     const [selectedIcon, setSelectedIcon] = useState(false)
     return (
         <div className="main_page">
-            <div className="header">
+            <div 
+                className="header"
+                style={{
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0px 1px 5px 2px rgba(0, 0, 0, 0.1)",
+                    height: "70px",
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: "30px",
+                    paddingLeft: "50px",
+                    zIndex: 100,
+                    boxSizing: "border-box",
+                }}
+            >
                 <Logo></Logo>
                 <div
                     className={`header_navigation`}

@@ -1,9 +1,10 @@
-import { useState, useRef, useMemo, useEffect } from "react"
+import { useState, useRef, useMemo, useEffect, useCallback } from "react"
 import { PGliteWorker } from "@electric-sql/pglite/worker";
 import * as XLSX from "xlsx";
 import Divider from "../../../components/ui/Divider";
 import Breadcrumb from "../../../components/ui/Breadcrumb";
 import ExcelIcon from "../../../components/icon/ExcelIcon";
+import useClickOutside from "../../../hooks/useClickOutside";
 
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // ---------- Helpers ----------
@@ -998,6 +999,12 @@ function PostgreSQL() {
     const [exportFormat, setExportFormat] = useState("xlsx")
     const [exportName, setExportName] = useState("query_result"); // tên file, chưa có đuôi
     const [openExportQueryResultPanel, setOpenExportQueryResultPanel] = useState(false)
+
+    // Dùng để tắt dropdown or window khi bấm ra ngoài vùng
+    const isMoreVertOpenRef = useRef(null);
+    const closeMoreVertOpen = useCallback(() => setIsMoreVertOpen(!isMoreVertOpen), []);
+    useClickOutside(isMoreVertOpenRef, closeMoreVertOpen);
+
     // Tìm các tên bảng (đã import) xuất hiện sau FROM / JOIN trong câu SQL
     const guessTableNames = (text) => {
         const known = new Set(tables.map((t) => t.name));
@@ -2027,8 +2034,8 @@ function PostgreSQL() {
                             type="button"
                             onClick={() => setQueryMode(m)}
                             style={{
-                                padding: "4px 12px", 
-                                fontSize: 14, 
+                                padding: "5px 15px", 
+                                fontSize: 15, 
                                 borderRadius: 5,
                                 cursor: "pointer",
                                 background: queryMode === m ? "#fff" : "#d2e2fc",
@@ -2175,6 +2182,7 @@ function PostgreSQL() {
                                 </button>
                                 {isMoreVertOpen && (
                                     <div
+                                        ref={isMoreVertOpenRef}
                                         style={{
                                             display: "flex", alignItems: "center", justifyContent: "center",
                                             backgroundColor: "#ffffff", border: 0, borderRadius: "5px", border: "1px solid #ccc", boxShadow: "0 12px 32px rgba(15,23,42,0.14)",
@@ -2354,6 +2362,7 @@ function PostgreSQL() {
                                                         fontWeight: "600",
                                                         color: "#555",
                                                         fontSize: "13px",
+                                                        fontFamily: "inherit"
                                                     }}
                                                 >
                                                     Export

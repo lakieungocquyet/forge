@@ -653,8 +653,7 @@ function SamtoolsIdxstats () {
                         </div>
                     </div>
                 </div>
-            )
-            }
+            )}
             <div
                 style={{
                     display: "flex",

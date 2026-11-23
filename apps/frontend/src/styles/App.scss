@@ -149,32 +149,6 @@ html, body {
         }
     }
 }
-
-// Header
-.header {
-    font-family: sans-serif;
-    background-color: #ffffff;
-    box-shadow: 0px 1px 5px 2px rgba(0, 0, 0, 0.1);
-    height: 70px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 30px;
-    padding-left: 10px;
-    z-index: 100;
-    box-sizing: border-box;
-}
-.logo {
-    cursor: pointer;
-    margin-left: 20px;
-    display: flex;
-    align-items: center;
-    .logo {
-        color: #FF7F50;
-        font-size: 30px;
-        font-weight: 700;
-    }
-}
 .github_repository_button_header{
 	margin-left: auto;
 	margin-right: 20px;
