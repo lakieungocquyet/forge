@@ -1,0 +1,10 @@
+{
+  "name": "@forge/wasm",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./samtools": "./dist/samtools/samtools.js",
+    "./bcftools": "./dist/bcftools/bcftools.js",
+    "./tracy": "./dist/tracy/tracy.js"
+  }
+}
