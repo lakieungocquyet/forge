@@ -9,9 +9,11 @@ packages/wasm/build/libs/*
 
 packages/wasm/build/samtools/*
 !packages/wasm/build/samtools/recipe.sh
+!packages/wasm/build/samtools/samtools-1.24.patch
 
 packages/wasm/build/bcftools/*
 !packages/wasm/build/bcftools/recipe.sh
+!packages/wasm/build/bcftools/bcftools-1.24.patch
 
 packages/wasm/build/tracy/*
 !packages/wasm/build/tracy/recipe.sh
