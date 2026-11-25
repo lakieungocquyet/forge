@@ -1,6 +1,4 @@
-import createTracy from './tracy.js';
-
-const BASE = import.meta.env.BASE_URL + 'wasm/tracy/';
+import createTracy from '@forge/wasm/tracy';
 
 // Ngưỡng
 const MAX_FILE_IN_RAM = 3 * 1024 * 1024 * 1024; // 3Gb   // 1 file lớn hơn mức này -> WORKERFS
@@ -35,7 +33,6 @@ self.onmessage = async (e) => {
         const mod = await createTracy({
             print: (t) => stdout.push(t),
             printErr: (t) => stderr.push(t),
-            locateFile: (p) => BASE + p, // chỉ còn samtools.wasm và samtools.data
         });
         console.log("[worker] wasm ready");   
 

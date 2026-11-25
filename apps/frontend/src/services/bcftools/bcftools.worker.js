@@ -195,9 +195,7 @@
      stream_ops.read gắn trên node đó. Backend nào tạo node thì dùng
      hàm read của backend đó.
 */
-import createBcftools from './bcftools.js';
-
-const BASE = import.meta.env.BASE_URL + 'wasm/bcftools/';
+import createBcftools from '@forge/wasm/bcftools';
 
 // Ngưỡng
 const MAX_FILE_IN_RAM = 500 * 1024 * 1024;  // 500Mb  // 1 file lớn hơn mức này -> WORKERFS
@@ -231,7 +229,6 @@ self.onmessage = async (e) => {
         const mod = await createBcftools({
             print: (t) => stdout.push(t),
             printErr: (t) => stderr.push(t),
-            locateFile: (p) => BASE + p,
         });
 
         // forceMode: 'ram' | 'mount' | undefined (tự động)

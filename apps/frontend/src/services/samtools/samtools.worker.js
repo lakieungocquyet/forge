@@ -1,6 +1,4 @@
-import createSamtools from './samtools.js';
-
-const BASE = import.meta.env.BASE_URL + 'wasm/samtools/';
+import createSamtools from '@forge/wasm/samtools';
 
 // Ngưỡng
 const MAX_FILE_IN_RAM = 3 * 1024 * 1024 * 1024; // 3Gb   // 1 file lớn hơn mức này -> WORKERFS
@@ -34,7 +32,6 @@ self.onmessage = async (e) => {
         const mod = await createSamtools({
             print: (t) => stdout.push(t),
             printErr: (t) => stderr.push(t),
-            locateFile: (p) => BASE + p, // chỉ còn samtools.wasm và samtools.data
         });
 
         // forceMode: 'ram' | 'mount' | undefined (tự động)
