@@ -9,6 +9,6 @@
     "build:frontend": "npm run build -w @forge/frontend",
     "preview:frontend": "npm run preview -w @forge/frontend",
     "dev:desktop": "npm run tauri dev -w @forge/desktop",
-    "build:desktop": "npm run tauri build -w @forge/desktop"
+    "build:desktop": "npm run build:win -w @forge/desktop"
   }
 }
