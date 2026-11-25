@@ -1,0 +1,44 @@
+diff -ruN bcftools-1.24-orig/Makefile bcftools-1.24-wasm/Makefile
+--- bcftools-1.24-orig/Makefile	2026-11-25 15:08:31.931738901 +0700
++++ bcftools-1.24-wasm/Makefile	2026-11-25 15:11:07.682218788 +0700
+@@ -117,7 +117,7 @@
+ # $(shell), :=, etc are GNU Make-specific.  If you don't have GNU Make,
+ # comment out this conditional.
+ ifneq "$(wildcard .git)" ""
+-PACKAGE_VERSION := $(shell git describe --always --dirty)
++PACKAGE_VERSION := $(shell git describe --always)
+ DOC_VERSION :=  $(shell git describe --always)+
+ DOC_DATE := $(shell date +'%Y-%m-%d %R %Z')
+ 
+@@ -229,7 +229,7 @@
+ endif  # PLUGINS_ENABLED
+ 
+ bcftools: $(OBJS) $(HTSLIB)
+-	$(CC) $(DYNAMIC_FLAGS) $(ALL_LDFLAGS) -o $@ $(OBJS) $(HTSLIB_LIB) -lm $(ALL_LIBS) $(GSL_LIBS) $(PERL_LIBS) -lpthread
++	$(CC) $(DYNAMIC_FLAGS) $(ALL_LDFLAGS) -o ../build/$@.js $(OBJS) $(HTSLIB_LIB) -lm $(ALL_LIBS) $(GSL_LIBS) $(PERL_LIBS)
+ 
+ plugins: $(PLUGINS)
+ 
+diff -ruN bcftools-1.24-orig/main.c bcftools-1.24-wasm/main.c
+--- bcftools-1.24-orig/main.c	2026-11-25 15:08:31.820547831 +0700
++++ bcftools-1.24-wasm/main.c	2026-11-25 15:11:51.888060586 +0700
+@@ -262,6 +262,7 @@
+ 
+ int main(int argc, char *argv[])
+ {
++    int ret = 0; optind = 1; opterr = 1; optopt = 0;
+     if (argc < 2) { usage(stderr); return 1; }
+ 
+     if (strcmp(argv[1], "version") == 0 || strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0) {
+diff -ruN bcftools-1.24-orig/version.sh bcftools-1.24-wasm/version.sh
+--- bcftools-1.24-orig/version.sh	2026-11-25 15:08:31.820547831 +0700
++++ bcftools-1.24-wasm/version.sh	2026-11-25 15:12:14.840748681 +0700
+@@ -30,7 +30,7 @@
+ if [ -e .git ]
+ then
+     # If we ever get to 10.x this will need to be more liberal
+-    VERSION=`git describe --match '[0-9].[0-9]*' --dirty --always`
++    VERSION=`git describe --match '[0-9].[0-9]*' --always`
+ fi
+ 
+ echo $VERSION
